@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="야구기록">
+<meta name="theme-color" content="#1B3A6B">
+<title>⚾ 야구 세이버매트릭스</title>
+<style>
+:root{
+  --navy:#1B3A6B;--red:#922B21;--sky:#2E86C1;
+  --bg:#f9fafb;--card:#ffffff;--bg2:#f3f4f6;
+  --txt:#111827;--txt2:#6b7280;
+  --bdr:#e5e7eb;--bdr2:#d1d5db;
+  --r:8px;--rl:12px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#000}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans KR',sans-serif}
+#app{max-width:430px;margin:0 auto;height:100%;display:flex;flex-direction:column;background:var(--bg);position:relative}
+/* header */
+.ghdr{background:var(--navy);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.gh-title{font-size:16px;font-weight:600;letter-spacing:-.2px}
+.gh-sub{font-size:11px;opacity:.72;margin-top:2px}
+.gh-right{display:flex;align-items:center;gap:8px}
+.gh-btn{background:rgba(255,255,255,.18);border:none;color:#fff;padding:6px 11px;border-radius:var(--r);font-size:12px;cursor:pointer;font-family:inherit}
+.gh-icon{background:none;border:none;color:rgba(255,255,255,.75);font-size:22px;cursor:pointer;padding:2px;line-height:1;position:relative}
+.pdot{position:absolute;top:1px;right:1px;width:7px;height:7px;border-radius:50%;background:#f59e0b;border:1.5px solid var(--navy)}
+/* tabs */
+.tabbar{display:flex;background:var(--card);border-top:1px solid var(--bdr);flex-shrink:0;padding-bottom:var(--safe-bottom)}
+.tab{flex:1;padding:8px 2px 10px;text-align:center;border:none;background:none;cursor:pointer;font-size:10px;color:var(--txt2);line-height:1.3;font-family:inherit}
+.tab .ti{display:block;font-size:22px;margin-bottom:1px;line-height:1}
+.tab.on{color:var(--navy)}
+/* content */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* subtabs */
+.stabs{display:flex;margin:10px 12px 0;background:var(--bg2);border-radius:var(--r);padding:3px;gap:3px}
+.stab{flex:1;padding:8px 4px;border:none;border-radius:6px;background:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--txt2);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit}
+.stab .ti{font-size:14px}
+.stab.on{background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.stab.bat.on{color:var(--navy)}.stab.pit.on{color:var(--red)}
+/* pitcher card */
+.pcard{margin:10px 12px 0;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);padding:13px 14px}
+.pcard-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.pcard-l{display:flex;align-items:center;gap:10px}
+.pav{width:38px;height:38px;border-radius:50%;background:var(--red);color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pcard-name{font-size:15px;font-weight:600;color:var(--txt)}
+.pcard-role{font-size:11px;color:var(--txt2);margin-top:1px}
+.pchg{background:none;border:1px solid var(--bdr2);border-radius:var(--r);padding:5px 10px;font-size:11px;color:var(--txt2);cursor:pointer;font-family:inherit}
+.pstats{display:flex}
+.pstat{flex:1;text-align:center;padding:0 4px}
+.pstat:not(:last-child){border-right:1px solid var(--bdr)}
+.pstat-val{font-size:20px;font-weight:600;color:var(--txt);line-height:1}
+.pstat-lbl{font-size:10px;color:var(--txt2);margin-top:3px}
+.pstat.em .pstat-val{color:var(--red)}
+/* player grid */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px}
+.pbtn{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 11px;cursor:pointer;display:flex;align-items:center;gap:9px;min-height:52px;width:100%;text-align:left;font-family:inherit}
+.pbtn:active{background:var(--bg2)}
+.pbtn.sel-b{border:2px solid var(--navy);background:#EBF0FB}
+.pbtn.sel-r{border:2px solid var(--red);background:#FDEDEC}
+.pno{width:30px;height:30px;border-radius:50%;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pno.b{background:var(--navy)}.pno.r{background:var(--red)}
+.pn{font-size:13px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp{font-size:11px;color:var(--txt2)}
+/* outcome buttons */
+.ocsec{padding:8px 12px}
+.oclbl{font-size:11px;font-weight:500;color:var(--txt2);padding:5px 0 5px}
+.ocgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ocbtn{border:none;border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;padding:12px 4px;min-height:52px;line-height:1.25;width:100%;font-family:inherit}
+.ocbtn:active{filter:brightness(.88);transform:scale(.97)}
+/* step header */
+.shdr{padding:11px 14px 0;display:flex;align-items:center;gap:9px}
+.back{background:none;border:none;cursor:pointer;color:var(--txt2);font-size:24px;padding:0;line-height:1}
+.s-title{font-size:15px;font-weight:600;color:var(--txt)}
+.s-sub{font-size:11px;color:var(--txt2)}
+.badge{padding:4px 11px;border-radius:var(--r);font-size:12px;font-weight:500}
+/* extras */
+.extras{display:grid;gap:8px;padding:8px 12px}
+.excard{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:11px 8px;text-align:center}
+.exlbl{font-size:11px;color:var(--txt2);margin-bottom:6px}
+.exval{font-size:24px;font-weight:600;color:var(--txt);line-height:1;margin-bottom:7px}
+.exbtns{display:flex;justify-content:center;gap:10px}
+.exbtn{width:30px;height:30px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--txt);font-family:inherit}
+.callout{margin:8px 12px 0;background:var(--bg2);border-left:3px solid var(--navy);border-radius:0 var(--r) var(--r) 0;padding:9px 12px;font-size:11px;color:var(--txt2);line-height:1.6}
+.callout strong{color:var(--navy)}
+.savewrap{padding:8px 12px 14px}
+.savebtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:inherit}
+.savebtn:active{background:#152f58}
+/* run input */
+.runlist{padding:8px 12px}
+.runitem{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:11px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.runno{width:32px;height:32px;border-radius:50%;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.runbtn{color:#fff;border:none;border-radius:var(--r);padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
+/* pitcher run */
+.runsec{padding:8px 12px}
+.rbigrow{display:flex;gap:10px;margin-bottom:14px}
+.rbigbtn{flex:1;padding:16px 10px;border:none;border-radius:var(--rl);cursor:pointer;text-align:center;font-size:14px;font-weight:600;line-height:1.4;font-family:inherit}
+.rbigbtn:active{filter:brightness(.9)}
+.rbigbtn.earn{background:#FDEDEC;color:var(--red);border:1px solid #F5B7B1}
+.rbigbtn.uearn{background:var(--bg2);color:var(--txt2);border:1px solid var(--bdr)}
+.rbigbtn i{display:block;font-size:28px;margin-bottom:5px}
+.rminirow{display:flex;gap:8px;margin-bottom:12px}
+.rmini{flex:1;background:var(--bg2);border-radius:var(--r);padding:10px;text-align:center}
+.rminiv{font-size:22px;font-weight:700}
+.rminil{font-size:10px;color:var(--txt2);margin-top:2px}
+.rlogitem{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr)}
+.rlogitem:last-child{border-bottom:none}
+.rdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.rdot.e{background:#e74c3c}.rdot.u{background:#95a5a6}
+.rdel{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:18px;padding:2px;line-height:1}
+/* log */
+.logitem{background:var(--card);border-bottom:1px solid var(--bdr);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.logbadge{width:40px;height:38px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;text-align:center;line-height:1.2}
+.logplayer{font-size:13px;font-weight:600;color:var(--txt)}
+.logdetail{font-size:11px;color:var(--txt2);margin-top:1px}
+.delbtn{background:none;border:none;color:var(--txt2);cursor:pointer;padding:4px;font-size:19px;line-height:1}
+/* stats */
+.statwrap{overflow-x:auto;padding:0 12px 16px}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:360px}
+th{padding:7px 5px;text-align:center;font-weight:600;white-space:nowrap;background:var(--navy);color:#fff}
+table.pit th{background:var(--red)}
+td{padding:6px 5px;text-align:center;border-bottom:1px solid var(--bdr);color:var(--txt);white-space:nowrap}
+tr:nth-child(even) td{background:var(--bg2)}
+.hi{color:var(--navy);font-weight:600}.hir{color:var(--red);font-weight:600}
+.seclbl{padding:10px 14px 4px;font-size:11px;font-weight:600;color:var(--txt2);letter-spacing:.04em;text-transform:uppercase}
+.empty{padding:40px 20px;text-align:center;color:var(--txt2)}
+.empty i{font-size:48px;display:block;margin-bottom:12px;opacity:.3}
+/* settings */
+.cfgwrap{padding:12px}
+.cfgcard{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);padding:15px;margin-bottom:10px}
+.cfgtitle{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.cfginput{width:100%;border:1px solid var(--bdr2);border-radius:var(--r);padding:10px 11px;font-size:12px;font-family:'SF Mono',Consolas,monospace;color:var(--txt);background:var(--bg2);outline:none;margin-bottom:8px;-webkit-appearance:none}
+.cfginput:focus{border-color:var(--navy)}
+.cfgrow{display:flex;gap:7px}
+.cfgbtn{flex:1;padding:10px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg2);color:var(--txt);cursor:pointer;font-size:12px;text-align:center;font-family:inherit}
+.cfgbtn.pr{background:var(--navy);color:#fff;border-color:var(--navy)}
+.cfgbtn:disabled{opacity:.4;cursor:not-allowed}
+.connst{display:none;margin-top:6px;font-size:11px}
+.srow{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid var(--bdr)}
+.srow:last-of-type{border-bottom:none}
+.srow span:first-child{color:var(--txt2)}
+.srow span:last-child{font-weight:500;color:var(--txt)}
+.syncbig{width:100%;margin-top:11px;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:inherit}
+.syncbig:active{background:#152f58}
+.syncbig:disabled{opacity:.38;cursor:not-allowed}
+/* toast */
+#toast{position:fixed;bottom:calc(70px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:var(--r);font-size:13px;z-index:99;transition:opacity .3s;pointer-events:none;white-space:nowrap;font-weight:500}
+#toast.ok{background:#15803d}#toast.err{background:#991b1b}#toast.off{opacity:0}
+/* game setup modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:flex;align-items:flex-end}
+.modal{background:var(--card);border-radius:var(--rl) var(--rl) 0 0;padding:20px 16px;padding-bottom:calc(20px + var(--safe-bottom));width:100%;max-width:430px;margin:0 auto}
+.modal h3{font-size:17px;font-weight:700;color:var(--txt);margin-bottom:16px}
+.modal input{width:100%;border:1.5px solid var(--bdr2);border-radius:var(--r);padding:12px 14px;font-size:16px;font-family:inherit;color:var(--txt);background:var(--bg2);outline:none;margin-bottom:10px;-webkit-appearance:none}
+.modal input:focus{border-color:var(--navy)}
+.modal .mlbl{font-size:12px;color:var(--txt2);margin-bottom:5px;font-weight:500}
+.modal .mbtns{display:flex;gap:8px;margin-top:4px}
+.modal .mcancel{flex:1;padding:13px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg2);color:var(--txt2);cursor:pointer;font-size:15px;font-family:inherit}
+.modal .mok{flex:2;padding:13px;border:none;border-radius:var(--r);background:var(--navy);color:#fff;cursor:pointer;font-size:15px;font-weight:600;font-family:inherit}
+@keyframes flash{0%{background:#fde68a}100%{background:var(--card)}}
+.flash{animation:flash .5s ease-out}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="ghdr"></div>
+  <div class="content" id="ct"></div>
+  <div class="tabbar" id="tbr"></div>
+</div>
+<div id="toast" class="off"></div>
+<div id="modal-root"></div>
+
+<script>
+const ROSTER=[
+  {no:1,name:"김민준",pos:"P",r:"p"},{no:2,name:"이서준",pos:"C",r:"b"},
+  {no:3,name:"박도현",pos:"1B",r:"b"},{no:4,name:"최지호",pos:"2B",r:"b"},
+  {no:5,name:"정우진",pos:"3B",r:"b"},{no:6,name:"강현서",pos:"SS",r:"b"},
+  {no:7,name:"윤준혁",pos:"LF",r:"b"},{no:8,name:"임재원",pos:"CF",r:"b"},
+  {no:9,name:"한승민",pos:"RF",r:"b"},{no:10,name:"오태양",pos:"DH",r:"b"},
+  {no:11,name:"신동혁",pos:"P",r:"p"},{no:12,name:"배준서",pos:"P",r:"p"},
+  {no:13,name:"류민성",pos:"IF",r:"b"},{no:14,name:"전하늘",pos:"OF",r:"b"},
+  {no:15,name:"조재현",pos:"C",r:"b"},
+];
+const OC_HIT=[{id:"1B",l:"안타",bg:"#22c55e",fg:"#166534"},{id:"2B",l:"2루타",bg:"#3b82f6",fg:"#1e3a8a"},{id:"3B",l:"3루타",bg:"#8b5cf6",fg:"#3b0764"},{id:"HR",l:"홈런",bg:"#ef4444",fg:"#7f1d1d"}];
+const OC_OB=[{id:"BB",l:"볼넷",bg:"#f59e0b",fg:"#78350f"},{id:"HBP",l:"사구",bg:"#f97316",fg:"#7c2d12"},{id:"IBB",l:"고의4구",bg:"#d97706",fg:"#78350f"}];
+const OC_OUT=[{id:"K",l:"삼진",bg:"#6b7280",fg:"#f9fafb"},{id:"GO",l:"땅볼",bg:"#e5e7eb",fg:"#374151"},{id:"FO",l:"뜬공",bg:"#e5e7eb",fg:"#374151"},{id:"DP",l:"병살타",bg:"#9ca3af",fg:"#1f2937"},{id:"SF",l:"희생플라이",bg:"#fde68a",fg:"#78350f"},{id:"SH",l:"희생번트",bg:"#fde68a",fg:"#78350f"},{id:"FC",l:"야선택",bg:"#e5e7eb",fg:"#374151"},{id:"E",l:"실책출루",bg:"#e5e7eb",fg:"#374151"}];
+const ALL_OC=[...OC_HIT,...OC_OB,...OC_OUT];
+const UID=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+function ocOuts(o){if(o==='DP')return 2;if(['K','GO','FO','SF','SH','FC'].includes(o))return 1;return 0;}
+
+let S={
+  tab:0,batSub:0,bs:0,bp:null,bo:null,brbi:0,bsb:0,bcs:0,
+  curPit:null,pitSub:0,
+  game:null,gcnt:1,games:[],
+  blog:[],pit_bf:[],pit_runs:[],
+  scriptUrl:"",lastSync:null,syncing:false,syncedIds:new Set(),
+};
+
+function load(){
+  try{
+    const raw=localStorage.getItem('baseball_app_v1');
+    if(raw){
+      const d=JSON.parse(raw);
+      ['blog','pit_bf','pit_runs','games','game','gcnt','scriptUrl','lastSync'].forEach(k=>{if(d[k]!==undefined)S[k]=d[k];});
+      S.syncedIds=new Set(d.syncedIds||[]);
+    }
+  }catch(e){console.error('load error',e);}
+}
+function save(){
+  try{
+    localStorage.setItem('baseball_app_v1',JSON.stringify({
+      blog:S.blog,pit_bf:S.pit_bf,pit_runs:S.pit_runs,games:S.games,
+      game:S.game,gcnt:S.gcnt,scriptUrl:S.scriptUrl,lastSync:S.lastSync,
+      syncedIds:[...S.syncedIds],
+    }));
+  }catch(e){console.error('save error',e);}
+}
+
+function toast(m,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=m;t.className=type||'';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('off'),2000);
+}
+function ocInfo(id){return ALL_OC.find(x=>x.id===id)||{l:id,bg:"#e5e7eb",fg:"#374151"};}
+function calcPitStats(pno,gid){
+  const bf=S.pit_bf.filter(e=>e.pno===pno&&(gid?e.gid===gid:true));
+  const runs=S.pit_runs.filter(e=>e.pno===pno&&(gid?e.gid===gid:true));
+  const h=bf.filter(e=>['1B','2B','3B','HR'].includes(e.oc)).length;
+  const hr=bf.filter(e=>e.oc==='HR').length;
+  const bb=bf.filter(e=>['BB','IBB'].includes(e.oc)).length;
+  const k=bf.filter(e=>e.oc==='K').length;
+  const outs=bf.reduce((s,e)=>s+ocOuts(e.oc),0);
+  const er=runs.filter(e=>e.earned).length,rv=runs.length;
+  const iF=Math.floor(outs/3),iR=outs%3,ipf=iF+iR/3;
+  const ipd=iR>0?`${iF}.${iR}`:`${iF}`;
+  const era=ipf>0?er*9/ipf:0,whip=ipf>0?(h+bb)/ipf:0;
+  const fip=ipf>0?(13*hr+3*bb-2*k)/ipf+3.10:0;
+  return{bf:bf.length,h,hr,bb,k,outs,r:rv,er,ipd,ipf,era,whip,fip};
+}
+function pitAgg(){
+  const pnos=[...new Set(S.pit_bf.map(e=>e.pno))];
+  return pnos.map(pno=>{const p=ROSTER.find(x=>x.no===pno);const g=new Set(S.pit_bf.filter(e=>e.pno===pno).map(e=>e.gid)).size;return{...calcPitStats(pno,null),name:p.name,no:pno,g};}).sort((a,b)=>a.era-b.era);
+}
+function paS(o){const noAB=["BB","IBB","HBP","SF","SH"],hits=["1B","2B","3B","HR"];return{pa:1,ab:noAB.includes(o)?0:1,h:hits.includes(o)?1:0,d2:o==="2B"?1:0,d3:o==="3B"?1:0,hr:o==="HR"?1:0,bb:(o==="BB"||o==="IBB")?1:0,hbp:o==="HBP"?1:0,so:o==="K"?1:0,sf:o==="SF"?1:0};}
+function batAgg(){
+  const m={};
+  for(const e of S.blog){const k=e.pn;if(!m[k])m[k]={name:k,no:e.pno,pa:0,ab:0,h:0,d2:0,d3:0,hr:0,bb:0,hbp:0,so:0,sf:0,rbi:0,run:0,sb:0,cs:0};const t=m[k],s=paS(e.oc);for(const f of['pa','ab','h','d2','d3','hr','bb','hbp','so','sf'])t[f]+=s[f];t.rbi+=e.rbi;t.run+=e.run;t.sb+=e.sb;t.cs+=e.cs;}
+  return Object.values(m).map(t=>{const avg=t.ab>0?t.h/t.ab:0;const od=t.ab+t.bb+t.hbp+t.sf;const obp=od>0?(t.h+t.bb+t.hbp)/od:0;const slg=t.ab>0?(t.h+t.d2+2*t.d3+3*t.hr)/t.ab:0;return{...t,avg,obp,slg,ops:obp+slg,bbp:t.pa>0?t.bb/t.pa:0,kp:t.pa>0?t.so/t.pa:0};}).sort((a,b)=>b.ops-a.ops);
+}
+function getBattersThisGame(){if(!S.game)return ROSTER.filter(p=>p.r==='b');const app=new Set(S.blog.filter(e=>e.gid===S.game.id).map(e=>e.pno));const all=ROSTER.filter(p=>p.r==='b');return[...all.filter(p=>app.has(p.no)),...all.filter(p=>!app.has(p.no))];}
+function getRunsThisGame(pno){if(!S.game)return 0;return S.blog.filter(e=>e.gid===S.game.id&&e.pno===pno).reduce((s,e)=>s+e.run,0);}
+function pendingCount(){return S.blog.filter(e=>!S.syncedIds.has(e.id)).length+S.pit_bf.filter(e=>!S.syncedIds.has(e.id)).length+S.pit_runs.filter(e=>!S.syncedIds.has(e.id)).length;}
+
+function renderGHdr(){
+  const pc=pendingCount();
+  document.getElementById('ghdr').innerHTML=S.game
+    ?`<div class="ghdr"><div><div class="gh-title">vs ${S.game.opp}</div><div class="gh-sub">${S.game.date} · G${String(S.game.no).padStart(2,'0')}</div></div><div class="gh-right"><button class="gh-icon" onclick="setTab(4)">☁${pc>0?'<div class="pdot"></div>':''}</button><button class="gh-btn" onclick="showGameModal()">경기 변경</button></div></div>`
+    :`<div class="ghdr"><div><div class="gh-title">⚾ 야구 세이버매트릭스</div><div class="gh-sub">경기를 시작하세요</div></div><div class="gh-right"><button class="gh-icon" onclick="setTab(4)">⚙</button><button class="gh-btn" onclick="showGameModal()">+ 경기 시작</button></div></div>`;
+}
+function renderTabs(){
+  const ts=[{i:'⚾',l:'타자입력'},{i:'🎯',l:'투수입력'},{i:'📋',l:'기록'},{i:'📊',l:'통계'}];
+  document.getElementById('tbr').innerHTML=ts.map((t,i)=>`<button class="tab${S.tab===i?' on':''}" onclick="setTab(${i})"><span class="ti">${t.i}</span>${t.l}</button>`).join('');
+}
+function renderCt(){
+  const el=document.getElementById('ct');
+  if(S.tab===0)el.innerHTML=rBatTab();
+  else if(S.tab===1)el.innerHTML=rPitTab();
+  else if(S.tab===2)el.innerHTML=rLog();
+  else if(S.tab===3)el.innerHTML=rStats();
+  else el.innerHTML=rSettings();
+}
+function r(){renderGHdr();renderTabs();renderCt();}
+function setTab(i){S.tab=i;r();}
+
+function rBatTab(){
+  const sub=S.bs===0?`<div class="stabs"><button class="stab bat${S.batSub===0?' on':''}" onclick="S.batSub=0;r()">👤타석 입력</button><button class="stab bat${S.batSub===1?' on':''}" onclick="S.batSub=1;r()">🏃득점 처리</button></div>`:'';
+  if(S.batSub===1&&S.bs===0)return sub+rRunInput();
+  return sub+(S.bs===0?rBatPSel():S.bs===1?rOCSel('bat'):rExtras());
+}
+function rRunInput(){
+  const batters=getBattersThisGame();
+  const app=S.game?new Set(S.blog.filter(e=>e.gid===S.game.id).map(e=>e.pno)):new Set();
+  return`<div class="runlist"><p style="padding:4px 0 10px;font-size:11px;color:var(--txt2);line-height:1.6">홈을 밟는 순간 <strong style="color:var(--navy)">+ 득점</strong>을 탭하세요.</p>
+  ${batters.map(p=>{const runs=getRunsThisGame(p.no);const active=app.has(p.no);return`<div class="runitem" id="rr-${p.no}" style="${active?'':'opacity:.4'}"><div class="runno" style="background:${active?'var(--navy)':'#9ca3af'}">${p.no}</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--txt)">${p.name}</div><div style="font-size:11px;color:var(--txt2)">${active?`이번 경기 ${runs}득점`:'미출전'}</div></div><button class="runbtn" style="background:var(--navy)" onclick="addBatRun(${p.no})">+ 득점</button></div>`;}).join('')}</div>`;
+}
+function rBatPSel(){return`<div class="seclbl">선수 선택</div><div class="pgrid">${ROSTER.filter(p=>p.r==='b').map(p=>`<button class="pbtn${S.bp===p.no?' sel-b':''}" onclick="selBat(${p.no})"><div class="pno b">${p.no}</div><div><div class="pn">${p.name}</div><div class="pp">${p.pos}</div></div></button>`).join('')}</div>`;}
+function rOCSel(mode){
+  const isP=mode==='pit';
+  const p=isP?ROSTER.find(x=>x.no===S.curPit):ROSTER.find(x=>x.no===S.bp);
+  return`<div class="shdr"><button class="back" onclick="${isP?'S.pitSub=0;r()':'S.bs=0;r()'}">←</button><div><div class="s-title">${p.name} <span style="font-size:11px;color:var(--txt2)">#${p.no}</span></div><div class="s-sub">${isP?'상대 타자 결과 입력':'타석 결과 선택'}</div></div></div>
+  <div class="ocsec"><div class="oclbl">안타 / 출루</div><div class="ocgrid">${[...OC_HIT,...OC_OB].map(o=>`<button class="ocbtn" style="background:${o.bg};color:${o.fg}" onclick="${isP?`pitOC('${o.id}')`:`selOC('${o.id}')`}">${o.l}</button>`).join('')}</div><div class="oclbl" style="margin-top:10px">아웃</div><div class="ocgrid">${OC_OUT.map(o=>`<button class="ocbtn" style="background:${o.bg};color:${o.fg}" onclick="${isP?`pitOC('${o.id}')`:`selOC('${o.id}')`}">${o.l}</button>`).join('')}</div></div>`;
+}
+function rExtras(){
+  const p=ROSTER.find(x=>x.no===S.bp),oc=ocInfo(S.bo);const showRbi=S.bo!=='SH';
+  return`<div class="shdr"><button class="back" onclick="S.bs=1;r()">←</button><div style="flex:1"><div class="s-title">${p.name}</div><div class="s-sub">추가 기록 입력</div></div><span class="badge" style="background:${oc.bg};color:${oc.fg}">${oc.l}</span></div>
+  <div class="callout"><strong>득점</strong>은 홈 밟는 순간 <strong>득점 처리</strong> 탭에서 입력하세요.</div>
+  <div class="extras" style="grid-template-columns:${showRbi?'repeat(3,1fr)':'repeat(2,1fr)'}">
+    ${showRbi?`<div class="excard"><div class="exlbl">타점 (RBI)</div><div class="exval" id="ev-brbi">${S.brbi}</div><div class="exbtns"><button class="exbtn" onclick="adj('brbi',-1)">−</button><button class="exbtn" onclick="adj('brbi',1)">+</button></div></div>`:''}
+    <div class="excard"><div class="exlbl">도루 (SB)</div><div class="exval" id="ev-bsb">${S.bsb}</div><div class="exbtns"><button class="exbtn" onclick="adj('bsb',-1)">−</button><button class="exbtn" onclick="adj('bsb',1)">+</button></div></div>
+    <div class="excard"><div class="exlbl">도루실패 (CS)</div><div class="exval" id="ev-bcs">${S.bcs}</div><div class="exbtns"><button class="exbtn" onclick="adj('bcs',-1)">−</button><button class="exbtn" onclick="adj('bcs',1)">+</button></div></div>
+  </div>
+  <div class="savewrap"><button class="savebtn" onclick="saveBat()">✓ 기록 저장</button></div>`;
+}
+function rPitTab(){
+  if(!S.curPit)return`<div class="seclbl">현재 투수 선택</div><div class="pgrid">${ROSTER.filter(p=>p.r==='p').map(p=>`<button class="pbtn${S.curPit===p.no?' sel-r':''}" onclick="selPit(${p.no})"><div class="pno r">${p.no}</div><div><div class="pn">${p.name}</div><div class="pp">${p.pos}</div></div></button>`).join('')}</div>`;
+  const p=ROSTER.find(x=>x.no===S.curPit);
+  const gid=S.game?S.game.id:null;
+  const st=calcPitStats(S.curPit,gid);
+  const card=`<div class="pcard"><div class="pcard-hdr"><div class="pcard-l"><div class="pav">${p.no}</div><div><div class="pcard-name">${p.name}</div><div class="pcard-role">${p.pos} · 투구 중</div></div></div><button class="pchg" onclick="S.curPit=null;r()">⇄ 교체</button></div><div class="pstats"><div class="pstat em"><div class="pstat-val">${st.ipd}</div><div class="pstat-lbl">IP</div></div><div class="pstat"><div class="pstat-val">${st.h}</div><div class="pstat-lbl">피안타</div></div><div class="pstat"><div class="pstat-val">${st.bb}</div><div class="pstat-lbl">볼넷</div></div><div class="pstat"><div class="pstat-val">${st.k}</div><div class="pstat-lbl">삼진</div></div><div class="pstat em"><div class="pstat-val">${st.er}</div><div class="pstat-lbl">자책</div></div></div></div>`;
+  const stabs=`<div class="stabs"><button class="stab pit${S.pitSub===0?' on':''}" onclick="S.pitSub=0;r()">👤타자 결과</button><button class="stab pit${S.pitSub===1?' on':''}" onclick="S.pitSub=1;r()">💧실점 처리</button></div>`;
+  const body=S.pitSub===0
+    ?`<div class="ocsec"><div class="oclbl">안타 / 출루</div><div class="ocgrid">${[...OC_HIT,...OC_OB].map(o=>`<button class="ocbtn" style="background:${o.bg};color:${o.fg}" onclick="pitOC('${o.id}')">${o.l}</button>`).join('')}</div><div class="oclbl" style="margin-top:10px">아웃</div><div class="ocgrid">${OC_OUT.map(o=>`<button class="ocbtn" style="background:${o.bg};color:${o.fg}" onclick="pitOC('${o.id}')">${o.l}</button>`).join('')}</div><div style="margin-top:8px;padding:8px 10px;background:var(--bg2);border-radius:var(--r);font-size:11px;color:var(--txt2)">아웃 3개마다 IP 자동 증가 · 실점은 <strong style="color:var(--red)">실점 처리</strong>에서 입력</div></div>`
+    :rPitRunInput();
+  return card+stabs+body;
+}
+function rPitRunInput(){
+  const gid=S.game?S.game.id:null;
+  const runs=S.pit_runs.filter(e=>e.pno===S.curPit&&(gid?e.gid===gid:true));
+  const er=runs.filter(e=>e.earned).length,ur=runs.filter(e=>!e.earned).length;
+  return`<div class="runsec"><p style="font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:10px">실점 발생 시 구분해서 탭하세요</p>
+  <div class="rbigrow"><button class="rbigbtn earn" onclick="addPitRun(true)">💧+ 자책점<br><span style="font-size:11px;opacity:.7">ERA에 반영</span></button><button class="rbigbtn uearn" onclick="addPitRun(false)">💧+ 비자책점<br><span style="font-size:11px;opacity:.7">ERA 미반영</span></button></div>
+  <div class="rminirow"><div class="rmini"><div class="rminiv" style="color:var(--red)">${er}</div><div class="rminil">자책점 (ER)</div></div><div class="rmini"><div class="rminiv" style="color:var(--txt2)">${ur}</div><div class="rminil">비자책 (UER)</div></div><div class="rmini"><div class="rminiv">${er+ur}</div><div class="rminil">총 실점 (R)</div></div></div>
+  ${runs.length?`<p style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:4px">실점 기록</p><div>${runs.slice().reverse().map(e=>`<div class="rlogitem"><div class="rdot ${e.earned?'e':'u'}"></div><div style="flex:1;font-size:12px;color:var(--txt2)">${e.earned?'자책점':'비자책점'}</div><button class="rdel" onclick="delPitRun('${e.id}')">✕</button></div>`).join('')}</div>`:''}
+  </div>`;
+}
+function rLog(){
+  const gid=S.game?S.game.id:null;
+  const be=gid?S.blog.filter(e=>e.gid===gid):S.blog.slice(-20);
+  const pbf=gid?S.pit_bf.filter(e=>e.gid===gid):S.pit_bf.slice(-20);
+  if(!be.length&&!pbf.length)return`<div class="empty">📋이 경기 기록이 없습니다.</div>`;
+  let h='';
+  if(be.length){h+=`<div class="seclbl">타자 기록 (${be.length}타석)</div>`;h+=be.slice().reverse().map(e=>{const oc=ocInfo(e.oc);const ex=[];if(e.rbi>0)ex.push(`${e.rbi}타점`);if(e.run>0)ex.push(`${e.run}득점`);if(e.sb>0)ex.push('도루');const sy=S.syncedIds.has(e.id);return`<div class="logitem"><div class="logbadge" style="background:${oc.bg};color:${oc.fg}">${oc.l}</div><div style="flex:1"><div class="logplayer">${e.pn}${sy?' <span style="font-size:10px;color:#15803d">✓</span>':''}</div><div class="logdetail">${ex.length?ex.join(' · '):'추가기록 없음'}</div></div><button class="delbtn" onclick="del('b','${e.id}')">✕</button></div>`;}).join('');}
+  if(pbf.length){const pnos=[...new Set(pbf.map(e=>e.pno))];h+=`<div class="seclbl">투수 기록 (${pbf.length}타자 상대)</div>`;pnos.forEach(pno=>{const p=ROSTER.find(x=>x.no===pno);const st=calcPitStats(pno,gid);h+=`<div class="logitem" style="background:var(--bg2)"><div class="logbadge" style="background:var(--red);color:#fff;font-size:11px">#${pno}</div><div><div class="logplayer">${p.name}</div><div class="logdetail">${st.ipd}이닝 · ${st.h}H · ${st.er}ER · ${st.bb}BB · ${st.k}K</div></div></div>`;});}
+  return h;
+}
+function rStats(){
+  const bs=batAgg(),ps=pitAgg();
+  let h=`<div class="seclbl">타자 지표 (시즌)</div>`;
+  if(!bs.length)h+=`<div class="empty">📊타자 데이터가 없습니다.</div>`;
+  else h+=`<div class="statwrap"><table><thead><tr><th style="text-align:left">선수</th><th>PA</th><th>AVG</th><th>OBP</th><th>OPS</th><th>K%</th></tr></thead><tbody>${bs.map(s=>`<tr><td style="text-align:left;font-weight:600">${s.name}</td><td>${s.pa}</td><td>${s.avg.toFixed(3)}</td><td>${s.obp.toFixed(3)}</td><td class="hi">${s.ops.toFixed(3)}</td><td>${(s.kp*100).toFixed(1)}%</td></tr>`).join('')}</tbody></table></div>`;
+  h+=`<div class="seclbl">투수 지표 (시즌)</div>`;
+  if(!ps.length)h+=`<div class="empty">📊투수 데이터가 없습니다.</div>`;
+  else h+=`<div class="statwrap"><table class="pit"><thead><tr><th style="text-align:left">선수</th><th>IP</th><th>ERA</th><th>WHIP</th><th>K</th><th>BB</th></tr></thead><tbody>${ps.map(s=>`<tr><td style="text-align:left;font-weight:600">${s.name}</td><td>${s.ipd}</td><td class="hir">${s.era.toFixed(2)}</td><td>${s.whip.toFixed(2)}</td><td>${s.k}</td><td>${s.bb}</td></tr>`).join('')}</tbody></table></div>`;
+  return h;
+}
+function rSettings(){
+  const pc=pendingCount();
+  const lastStr=S.lastSync?new Date(S.lastSync).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'없음';
+  return`<div class="cfgwrap">
+    <div class="cfgcard">
+      <div class="cfgtitle">☁구글 시트 연동</div>
+      <div style="font-size:11px;color:var(--txt2);margin-bottom:8px;line-height:1.7">Apps Script 웹 앱 URL을 입력하세요.<br>Code.gs 배포 후 복사한 URL을 붙여넣기</div>
+      <input class="cfginput" id="url-input" placeholder="https://script.google.com/macros/s/.../exec" value="${S.scriptUrl}" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="cfgrow">
+        <button class="cfgbtn" onclick="testConn()">🔌 연결 테스트</button>
+        <button class="cfgbtn pr" onclick="saveUrl()">✓ URL 저장</button>
+      </div>
+      <div id="connst" class="connst"></div>
+    </div>
+    <div class="cfgcard">
+      <div class="cfgtitle">📤동기화 현황</div>
+      <div class="srow"><span>타자 기록</span><span>${S.blog.length}타석</span></div>
+      <div class="srow"><span>투수 타자 결과</span><span>${S.pit_bf.length}건</span></div>
+      <div class="srow"><span>실점 기록</span><span>${S.pit_runs.length}건</span></div>
+      <div class="srow"><span>동기화 대기</span><span style="color:${pc>0?'#b45309':'#15803d'}">${pc}건 ${pc>0?'⚠':'✓'}</span></div>
+      <div class="srow"><span>마지막 동기화</span><span>${lastStr}</span></div>
+      <button class="syncbig" id="syncbtn" onclick="doSync()" ${(!S.scriptUrl||S.syncing||pc===0)?'disabled':''}>
+        ☁
+        ${S.syncing?'동기화 중...':`구글 시트로 전송 (${pc}건)`}
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── 게임 모달 ──────────────────────────────────────────────
+function showGameModal(){
+  const today=new Date();
+  const dd=String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  document.getElementById('modal-root').innerHTML=`
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>경기 설정</h3>
+        <div class="mlbl">경기 날짜</div>
+        <input id="m-date" type="text" placeholder="예: 05-10" value="${dd}" maxlength="5">
+        <div class="mlbl">상대팀</div>
+        <input id="m-opp" type="text" placeholder="상대팀 이름" maxlength="20">
+        <div class="mbtns">
+          <button class="mcancel" onclick="closeModal()">취소</button>
+          <button class="mok" onclick="confirmGame()">경기 시작</button>
+        </div>
+      </div>
+    </div>`;
+  setTimeout(()=>document.getElementById('m-opp').focus(),100);
+}
+function closeModal(){document.getElementById('modal-root').innerHTML='';}
+function confirmGame(){
+  const d=document.getElementById('m-date').value.trim();
+  const o=document.getElementById('m-opp').value.trim();
+  if(!d||!o){toast('날짜와 상대팀을 입력해주세요','err');return;}
+  S.game={id:UID(),no:S.gcnt++,date:d,opp:o};S.games.push({...S.game});
+  S.curPit=null;save();closeModal();r();toast(`vs ${o} 경기 시작!`);
+}
+
+// ── 이벤트 핸들러 ─────────────────────────────────────────
+function selBat(no){S.bp=no;S.bs=1;r();}
+function selOC(id){S.bo=id;S.brbi=S.bsb=S.bcs=0;S.bs=2;r();}
+function selPit(no){S.curPit=no;S.pitSub=0;r();}
+function adj(key,d){
+  S[key]=Math.max(0,(S[key]||0)+d);
+  const el=document.getElementById('ev-'+key);if(el)el.textContent=S[key];
+}
+function saveBat(){
+  if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
+  const p=ROSTER.find(x=>x.no===S.bp);
+  S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:p.no,pn:p.name,oc:S.bo,rbi:S.brbi,run:0,sb:S.bsb,cs:S.bcs});
+  save();toast(`${p.name} ${ocInfo(S.bo).l} 저장!`,'ok');S.bs=0;r();
+}
+function pitOC(id){
+  if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
+  const p=ROSTER.find(x=>x.no===S.curPit);
+  S.pit_bf.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:p.no,pn:p.name,oc:id});
+  save();const st=calcPitStats(S.curPit,S.game.id);toast(`${p.name} ${ocInfo(id).l} · ${st.ipd}이닝 ${st.k}K`,'ok');renderCt();
+}
+function addBatRun(pno){
+  if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
+  const entries=S.blog.filter(e=>e.gid===S.game.id&&e.pno===pno);
+  if(!entries.length){const p=ROSTER.find(x=>x.no===pno);S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:p.no,pn:p.name,oc:'_RUN',rbi:0,run:1,sb:0,cs:0});}
+  else entries[entries.length-1].run+=1;
+  save();const p=ROSTER.find(x=>x.no===pno);toast(`${p.name} 득점!`,'ok');
+  const row=document.getElementById(`rr-${pno}`);
+  if(row){row.classList.remove('flash');void row.offsetWidth;row.classList.add('flash');const c=row.querySelectorAll('div div')[1];if(c)c.textContent=`이번 경기 ${getRunsThisGame(pno)}득점`;}
+}
+function addPitRun(earned){
+  if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
+  const p=ROSTER.find(x=>x.no===S.curPit);
+  S.pit_runs.push({id:UID(),gid:S.game.id,pno:p.no,pn:p.name,earned});
+  save();toast(`${p.name} ${earned?'자책점':'비자책점'}`,'ok');renderCt();
+}
+function delPitRun(id){S.pit_runs=S.pit_runs.filter(e=>e.id!==id);save();renderCt();}
+function del(type,id){
+  if(type==='b')S.blog=S.blog.filter(e=>e.id!==id);
+  else S.pit_bf=S.pit_bf.filter(e=>e.id!==id);
+  save();renderCt();
+}
+function saveUrl(){
+  S.scriptUrl=document.getElementById('url-input').value.trim();
+  save();toast('URL 저장 완료','ok');r();
+}
+async function testConn(){
+  const url=document.getElementById('url-input').value.trim();
+  if(!url){toast('URL을 먼저 입력하세요','err');return;}
+  const st=document.getElementById('connst');
+  st.style.display='block';st.textContent='연결 확인 중...';st.style.color='#6b7280';
+
+  // Apps Script는 GET도 CORS 리다이렉트 문제가 있을 수 있으므로
+  // 실제 데이터 전송과 동일한 방식(text/plain POST)으로 테스트
+  try{
+    const res=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify({type:'ping'})
+    });
+    // Apps Script는 ping 타입을 모르지만 응답 자체가 오면 연결 성공
+    if(res.ok){
+      st.textContent='✓ 연결 성공! 동기화 가능합니다.';
+      st.style.color='#15803d';
+    }else{
+      st.textContent=`⚠ 응답 오류 (${res.status}) - 배포 설정 확인`;
+      st.style.color='#b45309';
+    }
+  }catch(e){
+    // CORS 오류인지 네트워크 오류인지 구분
+    if(e instanceof TypeError){
+      st.innerHTML='⚠ 브라우저 CORS 정책으로 테스트 차단됨<br><span style="color:#15803d">→ URL이 맞다면 동기화 버튼을 바로 눌러보세요</span>';
+      st.style.color='#b45309';
+    }else{
+      st.textContent='✗ 연결 실패 - URL을 확인하세요';
+      st.style.color='#991b1b';
+    }
+  }
+}
+async function doSync(){
+  if(!S.scriptUrl||S.syncing)return;
+  const bP=S.blog.filter(e=>!S.syncedIds.has(e.id));
+  const pfP=S.pit_bf.filter(e=>!S.syncedIds.has(e.id));
+  const prP=S.pit_runs.filter(e=>!S.syncedIds.has(e.id));
+  const gP=S.games.filter(g=>!S.syncedIds.has('g_'+g.id));
+  if(!bP.length&&!pfP.length&&!prP.length){toast('동기화할 데이터 없음');return;}
+  S.syncing=true;r();
+  try{
+    const res=await fetch(S.scriptUrl,{
+      method:'POST',
+      // text/plain 으로 보내야 CORS preflight(OPTIONS) 없이 전송됨
+      // application/json 사용 시 Apps Script가 OPTIONS 요청을 처리 못해 차단됨
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify({type:'sync',games:gP,bat_log:bP,pit_bf:pfP,pit_runs:prP})
+    });
+    const result=await res.json();
+    if(result.status==='ok'){
+      bP.forEach(e=>S.syncedIds.add(e.id));pfP.forEach(e=>S.syncedIds.add(e.id));prP.forEach(e=>S.syncedIds.add(e.id));gP.forEach(g=>S.syncedIds.add('g_'+g.id));
+      S.lastSync=Date.now();save();
+      toast(`동기화 완료 · ${result.batAdded+result.pitBfAdded}건 전송`,'ok');
+    }else toast(`오류: ${result.message}`,'err');
+  }catch(e){toast('네트워크 오류 - 인터넷 확인','err');}
+  S.syncing=false;r();
+}
+
+// Enter key for modal
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('m-opp'))confirmGame();});
+
+load();r();
+</script>
+</body>
+</html>
