@@ -197,7 +197,7 @@ let S={
   game:null,gcnt:1,games:[],
   blog:[],pit_bf:[],pit_runs:[],
   scriptUrl:"",lastSync:null,syncing:false,loading:false,rosterDirty:false,syncedIds:new Set(),
-  rosterSub:0,
+  rosterSub:0, bzone:null, sprayPlayer:null,
 };
 
 function load(){
@@ -352,16 +352,35 @@ function rOCSel(mode){
   <div class="ocsec"><div class="oclbl">안타 / 출루</div><div class="ocgrid">${[...OC_HIT,...OC_OB].map(o=>`<button class="ocbtn" style="background:${o.bg};color:${o.fg}" onclick="${isP?`pitOC('${o.id}')`:`selOC('${o.id}')`}">${o.l}</button>`).join('')}</div><div class="oclbl" style="margin-top:10px">아웃</div><div class="ocgrid">${OC_OUT.map(o=>`<button class="ocbtn" style="background:${o.bg};color:${o.fg}" onclick="${isP?`pitOC('${o.id}')`:`selOC('${o.id}')`}">${o.l}</button>`).join('')}</div></div>`;
 }
 function rExtras(){
-  const p=ROSTER.find(x=>x.no===S.bp),oc=ocInfo(S.bo);const showRbi=S.bo!=='SH';
-  return`<div class="shdr"><button class="back" onclick="S.bs=1;r()">←</button><div style="flex:1"><div class="s-title">${p.name}</div><div class="s-sub">추가 기록 입력</div></div><span class="badge" style="background:${oc.bg};color:${oc.fg}">${oc.l}</span></div>
+  const p=ROSTER.find(x=>x.no===S.bp),oc=ocInfo(S.bo);
+  const showRbi=S.bo!=='SH';
+  const isBIP=['1B','2B','3B','HR','GO','FO','DP','SF','FC','E'].includes(S.bo);
+  const zoneOF=['LF','LC','CF','RC','RF'];
+  const zoneIF=['3B','SS','2B','1B'];
+  return`<div class="shdr">
+    <button class="back" onclick="S.bs=1;r()">←</button>
+    <div style="flex:1"><div class="s-title">${p.name}</div><div class="s-sub">추가 기록 입력</div></div>
+    <span class="badge" style="background:${oc.bg};color:${oc.fg}">${oc.l}</span>
+  </div>
   <div class="callout"><strong>득점</strong>은 홈 밟는 순간 <strong>득점 처리</strong> 탭에서 입력하세요.</div>
   <div class="extras" style="grid-template-columns:${showRbi?'repeat(3,1fr)':'repeat(2,1fr)'}">
     ${showRbi?`<div class="excard"><div class="exlbl">타점 (RBI)</div><div class="exval" id="ev-brbi">${S.brbi}</div><div class="exbtns"><button class="exbtn" onclick="adj('brbi',-1)">−</button><button class="exbtn" onclick="adj('brbi',1)">+</button></div></div>`:''}
     <div class="excard"><div class="exlbl">도루 (SB)</div><div class="exval" id="ev-bsb">${S.bsb}</div><div class="exbtns"><button class="exbtn" onclick="adj('bsb',-1)">−</button><button class="exbtn" onclick="adj('bsb',1)">+</button></div></div>
     <div class="excard"><div class="exlbl">도루실패 (CS)</div><div class="exval" id="ev-bcs">${S.bcs}</div><div class="exbtns"><button class="exbtn" onclick="adj('bcs',-1)">−</button><button class="exbtn" onclick="adj('bcs',1)">+</button></div></div>
   </div>
+  ${isBIP?`<div style="padding:4px 12px 8px">
+    <div style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:6px">🎯 타구 방향 <span style="font-weight:400">(선택사항)</span></div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:5px">
+      ${zoneOF.map(z=>`<button onclick="S.bzone=S.bzone==='${z}'?null:'${z}';renderCt()" style="padding:9px 2px;border:${S.bzone===z?'2px solid var(--navy)':'1px solid var(--bdr)'};border-radius:var(--r);background:${S.bzone===z?'#EBF0FB':'var(--card)'};color:${S.bzone===z?'var(--navy)':'var(--txt2)'};font-size:12px;font-weight:${S.bzone===z?'700':'400'};cursor:pointer;font-family:inherit">${z}</button>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+      ${zoneIF.map(z=>`<button onclick="S.bzone=S.bzone==='${z}'?null:'${z}';renderCt()" style="padding:9px 2px;border:${S.bzone===z?'2px solid var(--red)':'1px solid var(--bdr)'};border-radius:var(--r);background:${S.bzone===z?'#FDEDEC':'var(--card)'};color:${S.bzone===z?'var(--red)':'var(--txt2)'};font-size:12px;font-weight:${S.bzone===z?'700':'400'};cursor:pointer;font-family:inherit">${z}</button>`).join('')}
+    </div>
+    ${S.bzone?`<div style="margin-top:5px;font-size:11px;color:var(--txt2);text-align:center">선택: <strong style="color:var(--navy)">${S.bzone}</strong> <button onclick="S.bzone=null;renderCt()" style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:11px;text-decoration:underline">해제</button></div>`:''}
+  </div>`:''}
   <div class="savewrap"><button class="savebtn" onclick="saveBat()">✓ 기록 저장</button></div>`;
 }
+
 function rPitTab(){
   if(!S.curPit)return`<div class="seclbl">현재 투수 선택</div><div class="pgrid">${ROSTER.filter(p=>p.r==='p').map(p=>`<button class="pbtn${S.curPit===p.no?' sel-r':''}" onclick="selPit(${p.no})"><div class="pno r">${p.no}</div><div><div class="pn">${p.name}</div><div class="pp">${p.pos}</div></div></button>`).join('')}</div>`;
   const p=ROSTER.find(x=>x.no===S.curPit);
@@ -394,26 +413,130 @@ function rLog(){
   if(pbf.length){const pnos=[...new Set(pbf.map(e=>e.pno))];h+=`<div class="seclbl">투수 기록 (${pbf.length}타자 상대)</div>`;pnos.forEach(pno=>{const p=ROSTER.find(x=>x.no===pno);const st=calcPitStats(pno,gid);h+=`<div class="logitem" style="background:var(--bg2)"><div class="logbadge" style="background:var(--red);color:#fff;font-size:11px">#${pno}</div><div><div class="logplayer">${p.name}</div><div class="logdetail">${st.ipd}이닝 · ${st.h}H · ${st.er}ER · ${st.bb}BB · ${st.k}K</div></div></div>`;});}
   return h;
 }
+function rSprayChart(playerName){
+  const entries=S.blog.filter(e=>e.pn===playerName&&e.zone);
+  const all=S.blog.filter(e=>e.pn===playerName);
+
+  // 존 좌표 (SVG 320×215, 홈플레이트 = 160,205)
+  const ZP={
+    'LF': {x:42, y:80}, 'LC': {x:98, y:50}, 'CF': {x:160,y:33},
+    'RC': {x:222,y:50}, 'RF': {x:278,y:80},
+    '3B': {x:72, y:152},'SS': {x:118,y:118},'2B': {x:202,y:118},'1B': {x:248,y:152},
+  };
+
+  // 타구 통계
+  const pullZones=['3B','LF'],centerZones=['SS','2B','LC','CF','RC'],oppoZones=['1B','RF'];
+  const pull=entries.filter(e=>pullZones.includes(e.zone)).length;
+  const ctr =entries.filter(e=>centerZones.includes(e.zone)).length;
+  const oppo=entries.filter(e=>oppoZones.includes(e.zone)).length;
+
+  // 도트 생성 (결정적 오프셋)
+  const dots=entries.map((e,i)=>{
+    const pos=ZP[e.zone]; if(!pos) return '';
+    const isHit=['1B','2B','3B','HR'].includes(e.oc);
+    const isHR=e.oc==='HR';
+    const is2B=e.oc==='2B', is3B=e.oc==='3B';
+    const fill=isHR?'#ef4444':is3B?'#8b5cf6':is2B?'#3b82f6':isHit?'#22c55e':'#9ca3af';
+    const r=isHR?7:5;
+    const ox=((i*37+7)%15)-7, oy=((i*53+11)%15)-7;
+    const label=isHR?'HR':is3B?'3B':is2B?'2B':isHit?'H':'';
+    return`<g>
+      <circle cx="${pos.x+ox}" cy="${pos.y+oy}" r="${r}" fill="${fill}" opacity="0.85" stroke="white" stroke-width="1.5"/>
+      ${label?`<text x="${pos.x+ox}" y="${pos.y+oy+3}" text-anchor="middle" fill="white" font-size="5" font-weight="bold">${label}</text>`:''}
+    </g>`;
+  }).join('');
+
+  const noData=!entries.length;
+
+  return`<div style="padding:0 12px 4px">
+    <div style="background:var(--bg2);border-radius:var(--rl);overflow:hidden;padding:12px 0 8px">
+      <div style="text-align:center;font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:8px">
+        ${playerName}의 스프레이 차트 (${entries.length}/${all.length}타석)
+      </div>
+      ${noData
+        ?`<div style="padding:24px;text-align:center;font-size:12px;color:var(--txt2)">타구 방향 데이터가 없습니다.<br><span style="font-size:11px;opacity:.7">타석 입력 시 방향을 선택하면 표시됩니다.</span></div>`
+        :`<svg viewBox="0 0 320 215" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:320px;display:block;margin:0 auto">
+          <!-- 외야 잔디 -->
+          <path d="M 160 205 L 12 90 A 165 165 0 0 1 308 90 Z" fill="#3d7a35"/>
+          <!-- 내야 흙 -->
+          <path d="M 160 205 L 80 148 L 160 85 L 240 148 Z" fill="#c8a060"/>
+          <!-- 마운드 -->
+          <ellipse cx="160" cy="145" rx="14" ry="10" fill="#b89058"/>
+          <!-- 파울라인 -->
+          <line x1="160" y1="205" x2="12" y2="90" stroke="white" stroke-width="1.5" opacity="0.7"/>
+          <line x1="160" y1="205" x2="308" y2="90" stroke="white" stroke-width="1.5" opacity="0.7"/>
+          <!-- 외야 펜스 -->
+          <path d="M 12 90 A 165 165 0 0 1 308 90" fill="none" stroke="white" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.6"/>
+          <!-- 내야 라인 -->
+          <polyline points="160,205 80,148 160,85 240,148 160,205" fill="none" stroke="white" stroke-width="1" opacity="0.5"/>
+          <!-- 베이스 -->
+          <polygon points="160,200 166,205 160,210 154,205" fill="white"/>
+          <polygon points="80,143 86,148 80,153 74,148" fill="white"/>
+          <polygon points="160,80 166,85 160,90 154,85" fill="white"/>
+          <polygon points="240,143 246,148 240,153 234,148" fill="white"/>
+          <!-- 존 레이블 -->
+          <text x="28"  y="82"  text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" font-family="sans-serif">LF</text>
+          <text x="93"  y="50"  text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" font-family="sans-serif">LC</text>
+          <text x="160" y="28"  text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" font-family="sans-serif">CF</text>
+          <text x="227" y="50"  text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" font-family="sans-serif">RC</text>
+          <text x="292" y="82"  text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" font-family="sans-serif">RF</text>
+          <text x="65"  y="170" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="8" font-family="sans-serif">3B</text>
+          <text x="113" y="125" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="8" font-family="sans-serif">SS</text>
+          <text x="207" y="125" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="8" font-family="sans-serif">2B</text>
+          <text x="255" y="170" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="8" font-family="sans-serif">1B</text>
+          <!-- 타구 도트 -->
+          ${dots}
+        </svg>
+        <!-- 범례 -->
+        <div style="display:flex;gap:10px;justify-content:center;font-size:10px;color:var(--txt2);margin:4px 0 8px;flex-wrap:wrap">
+          <span>🟢 안타</span><span>🔵 2루타</span><span>🟣 3루타</span><span>🔴 홈런</span><span>⚪ 아웃</span>
+        </div>
+        <!-- 방향 통계 -->
+        <div style="display:flex;gap:6px;margin:0 12px">
+          <div style="flex:1;background:var(--card);border-radius:var(--r);padding:8px;text-align:center;border:1px solid var(--bdr)">
+            <div style="font-size:18px;font-weight:700;color:var(--txt)">${pull}</div>
+            <div style="font-size:10px;color:var(--txt2)">당겨치기</div>
+          </div>
+          <div style="flex:1;background:var(--card);border-radius:var(--r);padding:8px;text-align:center;border:1px solid var(--bdr)">
+            <div style="font-size:18px;font-weight:700;color:var(--txt)">${ctr}</div>
+            <div style="font-size:10px;color:var(--txt2)">중앙</div>
+          </div>
+          <div style="flex:1;background:var(--card);border-radius:var(--r);padding:8px;text-align:center;border:1px solid var(--bdr)">
+            <div style="font-size:18px;font-weight:700;color:var(--txt)">${oppo}</div>
+            <div style="font-size:10px;color:var(--txt2)">밀어치기</div>
+          </div>
+        </div>`
+      }
+    </div>
+  </div>`;
+}
+
+function setSprayPlayer(name){
+  S.sprayPlayer=(S.sprayPlayer===name)?null:name;
+  renderCt();
+}
+
 function rStats(){
   const bs=batAgg(),ps=pitAgg();
   if(!bs.length&&!ps.length)
     return`<div class="empty">📊<br><br>아직 기록이 없습니다.</div>`;
   let h='';
   if(bs.length){
-    h+=`<div class="seclbl">🏏 타자 기본 기록</div>
+    h+=`<div class="seclbl">🏏 타자 기본 기록 <span style="font-size:10px;font-weight:400;color:var(--txt2)">— 선수명 탭 시 스프레이 차트</span></div>
     <div class="statwrap"><table><thead><tr>
-      <th style="text-align:left;min-width:58px">선수</th>
+      <th style="text-align:left;min-width:64px">선수</th>
       <th>PA</th><th>AB</th><th>H</th>
       <th>2B</th><th>3B</th><th>HR</th>
       <th>RBI</th><th>R</th><th>BB</th><th>K</th><th>SB</th>
-    </tr></thead><tbody>${bs.map(s=>`<tr>
-      <td style="text-align:left;font-weight:600">${s.name}</td>
+    </tr></thead><tbody>${bs.map(s=>`<tr style="cursor:pointer" onclick="setSprayPlayer('${s.name}')">
+      <td style="text-align:left;font-weight:700;color:${S.sprayPlayer===s.name?'var(--navy)':'var(--txt)'};text-decoration:${S.sprayPlayer===s.name?'underline':'none'}">${s.name}${S.sprayPlayer===s.name?' 📍':''}</td>
       <td>${s.pa}</td><td>${s.ab}</td><td>${s.h}</td>
       <td>${s.d2}</td><td>${s.d3}</td>
       <td style="color:var(--red);font-weight:600">${s.hr}</td>
       <td>${s.rbi}</td><td>${s.run}</td>
       <td>${s.bb}</td><td>${s.so}</td><td>${s.sb}</td>
-    </tr>`).join('')}</tbody></table></div>`;
+    </tr>`).join('')}</tbody></table></div>
+    ${S.sprayPlayer?rSprayChart(S.sprayPlayer):''}`;
 
     h+=`<div class="seclbl">📊 타자 세이버매트릭스</div>
     <div class="statwrap"><table><thead><tr>
@@ -516,7 +639,7 @@ function newGame(){
   showGameModal();
 }
 function selBat(no){S.bp=no;S.bs=1;r();}
-function selOC(id){S.bo=id;S.brbi=S.bsb=S.bcs=0;S.bs=2;r();}
+function selOC(id){S.bo=id;S.brbi=S.bsb=S.bcs=0;S.bzone=null;S.bs=2;r();}
 function selPit(no){S.curPit=no;S.pitSub=0;r();}
 function adj(key,d){
   S[key]=Math.max(0,(S[key]||0)+d);
@@ -525,7 +648,7 @@ function adj(key,d){
 function saveBat(){
   if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
   const p=ROSTER.find(x=>x.no===S.bp);
-  S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:p.no,pn:p.name,oc:S.bo,rbi:S.brbi,run:0,sb:S.bsb,cs:S.bcs});
+  S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:p.no,pn:p.name,oc:S.bo,rbi:S.brbi,run:0,sb:S.bsb,cs:S.bcs,zone:S.bzone});
   save();toast(`${p.name} ${ocInfo(S.bo).l} 저장!`,'ok');S.bs=0;r();
 }
 function pitOC(id){
