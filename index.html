@@ -719,19 +719,34 @@ async function doSync(){
   if(!bP.length&&!pfP.length&&!prP.length&&!S.rosterDirty){toast('동기화할 데이터 없음');return;}
   S.syncing=true;r();
   try{
-    // no-cors: CORS 검사 없이 전송. 응답 본문 읽기 불가하지만 데이터는 Apps Script에 수신됨
+    // ① 기록 데이터: no-cors POST (CORS 우회)
     await fetch(S.scriptUrl,{
       method:'POST',
       mode:'no-cors',
-      body:JSON.stringify({type:'sync',games:gP,bat_log:bP,pit_bf:pfP,pit_runs:prP,
-        roster:ROSTER})  // 선수 명단 항상 포함
+      body:JSON.stringify({type:'sync',games:gP,bat_log:bP,pit_bf:pfP,pit_runs:prP})
     });
-    // no-cors는 응답을 읽을 수 없으므로 에러 없으면 성공으로 처리
-    bP.forEach(e=>S.syncedIds.add(e.id));pfP.forEach(e=>S.syncedIds.add(e.id));prP.forEach(e=>S.syncedIds.add(e.id));gP.forEach(g=>S.syncedIds.add('g_'+g.id));
-    S.rosterDirty=false;  // 선수 명단 동기화 완료
+    bP.forEach(e=>S.syncedIds.add(e.id));
+    pfP.forEach(e=>S.syncedIds.add(e.id));
+    prP.forEach(e=>S.syncedIds.add(e.id));
+    gP.forEach(g=>S.syncedIds.add('g_'+g.id));
+
+    // ② 선수 명단: GET 요청 (응답 확인 가능, CORS 정상 지원)
+    if(S.rosterDirty){
+      const rosterParam=encodeURIComponent(JSON.stringify(ROSTER));
+      const rRes=await fetch(`${S.scriptUrl}?action=saveRoster&data=${rosterParam}`);
+      const rData=await rRes.json();
+      if(rData.status==='ok'){
+        S.rosterDirty=false;
+        console.log(`선수 명단 ${rData.saved}명 저장 완료`);
+      } else {
+        console.error('선수 명단 저장 실패:', rData.message);
+      }
+    }
+
     S.lastSync=Date.now();save();
     const total=bP.length+pfP.length+prP.length;
-    toast(`☁ 동기화 완료 (${total}건 전송)`,'ok');
+    const rosterMsg=!S.rosterDirty?' + 선수 명단':'';
+    toast(`☁ 동기화 완료 (${total}건${rosterMsg})`,'ok');
   }catch(e){toast('네트워크 오류 - 인터넷 확인','err');}
   S.syncing=false;r();
 }
