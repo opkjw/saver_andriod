@@ -720,11 +720,11 @@ function rSprayChart(playerName){
   var entries=blog.filter(function(e){return e.zone;});
   var cx=175,cy=200,r=162;
   var SECTORS=[
-    {label:'3루선', keys:['3B'],           startDeg:-45,endDeg:-26,color:'#e74c3c',inner:'#922b21'},
+    {label:'3루수', keys:['3B','LF'],           startDeg:-45,endDeg:-26,color:'#e74c3c',inner:'#922b21'},
     {label:'유격수', keys:['SS'],           startDeg:-26,endDeg:-8, color:'#f39c12',inner:'#d35400'},
     {label:'중앙',   keys:['LC','CF','RC'], startDeg:-8, endDeg:10, color:'#f1c40f',inner:'#d4ac0d'},
     {label:'2루수',  keys:['2B'],           startDeg:10, endDeg:28, color:'#2ecc71',inner:'#1e8449'},
-    {label:'1루선',  keys:['1B'],           startDeg:28, endDeg:45, color:'#16a085',inner:'#0e6655'},
+    {label:'1루수',  keys:['1B','RF'],           startDeg:28, endDeg:45, color:'#16a085',inner:'#0e6655'},
   ];
   function pxy(deg){
     var rd=deg*Math.PI/180;
