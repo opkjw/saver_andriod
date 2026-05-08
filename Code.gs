@@ -170,6 +170,14 @@ function doPost(e) {
 function doGet(e) {
   const action = e.parameter.action;
   try {
+    // PIN 로그인은 AUTH_TOKEN 체크 없이 먼저 처리 (이 자체가 인증)
+    if (action === 'login') {
+      const pin = e.parameter.pin || '';
+      if (ADMIN_PIN && pin === ADMIN_PIN) return out({ status: 'ok', role: 'admin' });
+      if (USER_PIN  && pin === USER_PIN)  return out({ status: 'ok', role: 'user' });
+      return out({ status: 'error', message: 'PIN이 올바르지 않습니다.' });
+    }
+
     if (!checkAuth(e.parameter.token || '')) {
       return out({ status: 'error', message: '인증 실패: 올바른 토큰이 필요합니다.' });
     }
@@ -198,14 +206,6 @@ function doGet(e) {
         pit_runs: readAll(SHEETS.pit_runs),
         roster:   readAll(SHEETS.roster)
       });
-    }
-
-    // PIN 로그인 (AUTH_TOKEN 체크 제외 — 이 자체가 인증)
-    if (action === 'login') {
-      const pin = e.parameter.pin || '';
-      if (ADMIN_PIN && pin === ADMIN_PIN) return out({ status: 'ok', role: 'admin' });
-      if (USER_PIN  && pin === USER_PIN)  return out({ status: 'ok', role: 'user' });
-      return out({ status: 'error', message: 'PIN이 올바르지 않습니다.' });
     }
 
     // 연결 테스트
