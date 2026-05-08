@@ -801,7 +801,14 @@ function rStats(){
   if(!bs.length&&!ps.length)return h+'<div class="empty" style="padding:32px">해당 경기 기록이 없습니다.</div>';
 
   if(bs.length){
-    h+='<div class="seclbl">🏏 타자 기본 기록 <span style="font-size:10px;font-weight:400;color:var(--txt2)">— 이름 탭 → 스프레이 차트</span></div>'
+    // 대표 선수 번호·이름 (Number 변환으로 타입 통일)
+    const myNo=S.myPlayer?Number(S.myPlayer):null;
+    const myPlayerEntry=myNo?bs.find(s=>Number(s.no)===myNo):null;
+    const myPlayerName=myPlayerEntry?myPlayerEntry.name:null;
+    // 스프레이 차트: 클릭 선택 우선, 없으면 대표 선수 자동
+    const activeSpray=S.sprayPlayer||(myPlayerName||null);
+
+    h+='<div class="seclbl">🏏 타자 기본 기록 <span style="font-size:10px;font-weight:400;color:var(--txt2)">— 이름 탭 → 스프레이 차트'+(myPlayerName?' · 대표 선수 자동 표시':'')+'</span></div>'
       +'<div class="statwrap"><table><thead><tr>'
       +'<th style="text-align:left;min-width:62px">선수</th>'
       +'<th class="sth" onclick="showStatInfo(\'PA\')">PA</th>'
@@ -817,7 +824,7 @@ function rStats(){
       +'<th class="sth" onclick="showStatInfo(\'SB\')">SB</th>'
       +'</tr></thead><tbody>';
     bs.forEach(s=>{
-      const sel=S.sprayPlayer===s.name;
+      const sel=S.sprayPlayer?S.sprayPlayer===s.name:activeSpray===s.name;
       h+='<tr style="cursor:pointer" onclick="setSprayPlayer(\''+s.name+'\')">'
         +'<td style="text-align:left;font-weight:700;color:'+(sel?'var(--navy)':'var(--txt)')+';text-decoration:'+(sel?'underline':'none')+'">'+s.name+(sel?' 📍':'')+'</td>'
         +'<td>'+s.pa+'</td><td>'+s.ab+'</td><td>'+s.h+'</td>'
@@ -827,12 +834,12 @@ function rStats(){
         +'</tr>';
     });
     h+='</tbody></table></div>';
-    if(S.sprayPlayer)h+=rSprayChart(S.sprayPlayer);
+    if(activeSpray)h+=rSprayChart(activeSpray);
     h+='<div class="seclbl">📊 타자 세이버매트릭스 <span style="font-size:10px;font-weight:400;color:var(--txt2)">— 지표 탭하면 설명 · MLB 기준 색상</span></div>';
-    // myPlayer 우선 정렬
-    const sortedBs=S.myPlayer?[...bs].sort((a,b)=>(b.no===S.myPlayer?1:0)-(a.no===S.myPlayer?1:0)):bs;
+    // 대표 선수 우선 정렬 (Number 변환으로 타입 안전 비교)
+    const sortedBs=myNo?[...bs].sort((a,b)=>(Number(b.no)===myNo?1:0)-(Number(a.no)===myNo?1:0)):bs;
     sortedBs.forEach(function(s){
-      const isMy=S.myPlayer&&s.no===S.myPlayer;
+      const isMy=myNo&&Number(s.no)===myNo;
       const heroData=[
         {key:'OPS',val:s.ops,fmt:s.ops.toFixed(3)},
         {key:'wRC+',val:s.wrc_plus,fmt:String(s.wrc_plus)},
