@@ -499,6 +499,7 @@ function doLogout(){
 }
 
 // ── 온보딩 셋업 위자드 ──────────────────────────────────
+// Step 0: 환영  Step 1: 클라우드 URL+자동불러오기  Step 2: 우리아이 선택  Step 3: 완료
 function renderSetup(){
   var ol=document.getElementById('setup-overlay');
   if(!ol)return;
@@ -514,18 +515,9 @@ function renderSetup(){
       +'<div class="su-title">우리 팀 야구 기록,<br>쉽고 스마트하게</div>'
       +'<div class="su-desc">선수별 타석·투구 기록부터<br>세이버매트릭스 통계까지<br>한 번에 관리하세요</div>';
     actions='<button class="su-next" onclick="S.setupStep=1;renderSetup()">시작하기</button>'
-      +'<button class="su-skip" onclick="finishSetup()">건너뛰기</button>';
+      +'<button class="su-skip" onclick="finishSetup(true)">건너뛰기</button>';
   } else if(step===1){
-    body='<div class="su-icon">🏫</div>'
-      +'<div class="su-title">팀 이름을<br>알려주세요</div>'
-      +'<div class="su-desc">앱 상단과 로그인 화면에<br>팀 이름이 표시됩니다</div>'
-      +'<div class="su-field">'
-      +'<div class="su-lbl">학교 / 팀 이름</div>'
-      +'<input class="su-input" id="su-school" type="text" placeholder="예: 서울초등학교" maxlength="30" value="'+esc(S.schoolName)+'" autocomplete="off" onkeydown="if(event.key===&apos;Enter&apos;)saveSetupSchool()">'
-      +'</div>';
-    actions='<button class="su-next" onclick="saveSetupSchool()">다음</button>'
-      +'<button class="su-skip" onclick="S.setupStep=2;renderSetup()">건너뛰기</button>';
-  } else if(step===2){
+    // 클라우드 URL 입력 + 자동 불러오기
     body='<div class="su-icon">☁</div>'
       +'<div class="su-title">클라우드 연동</div>'
       +'<div class="su-desc">클라우드 연동으로 다기기<br>동기화를 활성화합니다</div>'
@@ -534,41 +526,84 @@ function renderSetup(){
       +'<input class="su-input" id="su-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" value="'+esc(S.scriptUrl)+'" autocomplete="off" spellcheck="false">'
       +'</div>'
       +'<div class="su-connst" id="su-connst"></div>';
-    actions='<button class="su-next" onclick="saveSetupUrl()">저장 및 다음</button>'
-      +'<button class="su-skip" onclick="S.setupStep=3;renderSetup()">건너뛰기</button>';
+    actions='<button class="su-next" id="su-fetch-btn" onclick="saveSetupUrl()">연결 및 불러오기</button>'
+      +'<button class="su-skip" onclick="finishSetup(true)">건너뛰기</button>';
+  } else if(step===2){
+    // 우리 아이 선택
+    var rosterHtml='';
+    ROSTER.forEach(function(p){
+      var sel=S.myPlayer===p.no;
+      rosterHtml+='<button onclick="S.myPlayer='+(sel?'null':p.no)+';renderSetup()" style="display:flex;align-items:center;gap:10px;width:100%;background:'+(sel?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)')+';border:1.5px solid '+(sel?'rgba(255,255,255,.55)':'rgba(255,255,255,.1)')+';border-radius:12px;padding:12px 14px;margin-bottom:7px;cursor:pointer;font-family:inherit;text-align:left">'
+        +'<div style="width:34px;height:34px;border-radius:50%;background:'+(p.r==='p'?'#c0392b':'rgba(255,255,255,.18)')+';color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+p.no+'</div>'
+        +'<div style="flex:1"><div style="font-size:15px;font-weight:600;color:#fff">'+esc(p.name)+'</div><div style="font-size:11px;color:rgba(255,255,255,.5)">'+esc(p.pos)+'</div></div>'
+        +(sel?'<div style="color:#fff;font-size:20px;margin-left:auto">✓</div>':'')
+        +'</button>';
+    });
+    body='<div class="su-icon">👦</div>'
+      +'<div class="su-title">우리 아이를<br>선택해주세요</div>'
+      +'<div class="su-desc" style="margin-bottom:16px">선택한 선수의 기록만<br>학부모 모드에서 표시됩니다</div>'
+      +'<div style="width:100%;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch">'+rosterHtml+'</div>';
+    actions='<button class="su-next" onclick="finishSetup(false)">학부모 모드로 시작</button>'
+      +(S.myPlayer==null?'<button class="su-skip" onclick="finishSetup(true)">선택 없이 시작</button>':'');
   } else {
+    // 완료
+    var myP=S.myPlayer!=null?ROSTER.find(function(p){return p.no===S.myPlayer;}):null;
     body='<div class="su-icon">🎉</div>'
       +'<div class="su-title">모든 준비가<br>완료됐습니다!</div>'
-      +'<div class="su-desc">이제 선수 명단을 확인하고<br>첫 경기를 시작해보세요</div>'
+      +'<div class="su-desc">학부모 모드로 시작합니다</div>'
       +'<div class="su-summary">'
-      +(S.schoolName?'🏫 '+esc(S.schoolName)+'<br>':'')
-      +(S.scriptUrl?'☁ 구글 시트 연동 완료':'☁ 구글 시트 (나중에 설정 가능)')
-      +'</div>'
-      +'<div class="su-tip">💡 설정 탭에서 선수 명단을 실제 팀으로 교체하고,<br>Code.gs에서 PIN 번호를 설정해보세요.</div>';
-    actions='<button class="su-next" onclick="finishSetup()">앱 시작하기 →</button>';
+      +(myP?'👦 '+esc(myP.name)+' (#'+myP.no+')<br>':'')
+      +(S.scriptUrl?'☁ 구글 시트 연동 완료':'')
+      +'</div>';
+    actions='<button class="su-next" onclick="finishSetup(false)">앱 시작하기 →</button>';
   }
   ol.innerHTML=dots+'<div class="su-body">'+body+'</div>'+'<div class="su-actions">'+actions+'</div>';
-  if(step===1)setTimeout(function(){var el=document.getElementById('su-school');if(el)el.focus();},100);
-  if(step===2)setTimeout(function(){var el=document.getElementById('su-url');if(el)el.focus();},100);
+  if(step===1)setTimeout(function(){var el=document.getElementById('su-url');if(el)el.focus();},100);
 }
-function saveSetupSchool(){
-  var el=document.getElementById('su-school');
-  if(el)S.schoolName=el.value.trim();
-  save();S.setupStep=2;renderSetup();
-}
-function saveSetupUrl(){
+async function saveSetupUrl(){
   var el=document.getElementById('su-url');
   var url=el?el.value.trim():'';
+  var st=document.getElementById('su-connst');
+  var btn=document.getElementById('su-fetch-btn');
   if(!url){
-    var st=document.getElementById('su-connst');
     if(st){st.textContent='⚠ URL을 입력해주세요.';st.style.color='#fca5a5';}
     return;
   }
-  S.scriptUrl=url;save();
-  S.setupStep=3;renderSetup();
+  if(st){st.textContent='⏳ 데이터 불러오는 중...';st.style.color='rgba(255,255,255,.6)';}
+  if(btn){btn.disabled=true;btn.textContent='불러오는 중...';}
+  try{
+    var res=await fetch(url+'?action=fetch');
+    var data=await res.json();
+    if(data.status!=='ok')throw new Error(data.message||'서버 오류');
+    S.scriptUrl=url;
+    S.games=data.games||[];
+    S.blog=data.bat_log||[];
+    S.pit_bf=data.pit_bf||[];
+    S.pit_runs=data.pit_runs||[];
+    if(data.roster&&data.roster.length>0)ROSTER.splice(0,ROSTER.length,...data.roster);
+    S.syncedIds=new Set();
+    (data.games||[]).forEach(function(g){S.syncedIds.add('g_'+g.id);});
+    (data.bat_log||[]).forEach(function(e){S.syncedIds.add(e.id);});
+    (data.pit_bf||[]).forEach(function(e){S.syncedIds.add(e.id);});
+    (data.pit_runs||[]).forEach(function(e){S.syncedIds.add(e.id);});
+    S.lastSync=Date.now();save();
+    S.setupStep=2;renderSetup();
+  }catch(err){
+    if(st){st.textContent='✗ 연결 실패 — URL을 확인해주세요';st.style.color='#fca5a5';}
+    if(btn){btn.disabled=false;btn.textContent='연결 및 불러오기';}
+  }
 }
-function finishSetup(){
-  S.setupDone=true;save();
+function finishSetup(asAdmin){
+  S.setupDone=true;
+  if(asAdmin){
+    // 건너뛰기: URL 없으면 admin, URL 있으면 로그인 화면으로
+    if(!S.scriptUrl){S.role='admin';sessionStorage.setItem('bb_role','admin');}
+    else{S.role=null;sessionStorage.removeItem('bb_role');}
+  } else {
+    // 우리아이 선택 완료: 학부모 모드
+    S.role='user';sessionStorage.setItem('bb_role','user');
+  }
+  save();
   document.getElementById('setup-overlay').style.display='none';
   renderLogin();r();
 }
