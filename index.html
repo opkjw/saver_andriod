@@ -1035,8 +1035,14 @@ function rSprayChart(pno){
   var pno2=Number(pno);
   var roster=ROSTER.find(function(x){return Number(x.no)===pno2;});
   var playerName=roster?roster.name:('#'+pno2);
+  // pno 기반 1차 검색
   var blog=S.blog.filter(function(e){return Number(e.pno)===pno2;});
+  // pno 매칭 없으면 이름 기반 fallback
+  if(blog.length===0&&roster){
+    blog=S.blog.filter(function(e){return e.pn===roster.name;});
+  }
   var entries=blog.filter(function(e){return e.zone;});
+  console.log('[SprayChart] pno='+pno2+' name='+playerName+' blog='+blog.length+' zone='+entries.length);
   var cx=175,cy=200,r=162;
   var SECTORS=[
     {label:'3루수', keys:['3B','LF'],           startDeg:-45,endDeg:-26,color:'#e74c3c',inner:'#922b21'},
@@ -1142,7 +1148,7 @@ function rSprayChart(pno){
     +'<span style="font-size:11px;color:rgba(255,255,255,.8);display:flex;align-items:center;gap:3px"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#16a085"></span>밀어치기</span>'
     +'</div>'
     // 3단 요약
-    +(noData?('<div style="padding:0 12px;text-align:center;font-size:11px;color:rgba(255,255,255,.35)">타구 방향 데이터가 없습니다. 타석 입력 시 방향을 선택하면 표시됩니다.</div>'):('<div style="display:flex;gap:6px;margin:0 12px">'+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:#f87171">'+pp+'%</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">당겨치기</div></div>')+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:#fde047">'+cp+'%</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">중앙</div></div>')+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:#4ade80">'+op+'%</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">밀어치기</div></div>')+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:white">'+total+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">기록타구</div></div>')+'</div>'))
+    +(noData?('<div style="padding:0 12px;text-align:center;font-size:11px;color:rgba(255,255,255,.5)">타구 방향 데이터가 없습니다. 타석 입력 시 방향을 선택하면 표시됩니다.</div>'+'<div style="padding:2px 12px 4px;text-align:center;font-size:10px;color:rgba(255,255,255,.25)">[디버그] pno='+pno2+' 타석='+blog.length+'건 방향='+entries.length+'건</div>'):('<div style="display:flex;gap:6px;margin:0 12px">'+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:#f87171">'+pp+'%</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">당겨치기</div></div>')+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:#fde047">'+cp+'%</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">중앙</div></div>')+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:#4ade80">'+op+'%</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">밀어치기</div></div>')+('<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.07)"><div style="font-size:18px;font-weight:800;color:white">'+total+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">기록타구</div></div>')+'</div>'))
     +'</div></div>';
 }
 
