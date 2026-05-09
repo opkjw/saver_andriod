@@ -6,11 +6,13 @@
 const AUTH_TOKEN = '';
 
 // PIN 로그인 설정
-// ADMIN_PIN: 코치/감독용 (전체 선수 통계 접근)
-// USER_PIN:  학부모용 (대표 선수만 접근)
+// ADMIN_PIN:    코치/감독용 (전체 기능 접근)
+// RECORDER_PIN: 기록자용 (타석·투수 입력+기록 접근, 통계 없음)
+// USER_PIN:     학부모용 (우리 아이만 접근)
 // 빈 문자열이면 해당 역할 로그인 비활성화
-const ADMIN_PIN = '1234';
-const USER_PIN  = '0000';
+const ADMIN_PIN    = '1234';
+const RECORDER_PIN = '2222';
+const USER_PIN     = '0000';
 
 // 팀/학교명 — 학부모 앱 접속 시 자동으로 채워집니다
 // 빈 문자열('')이면 학부모가 직접 입력
@@ -178,8 +180,9 @@ function doGet(e) {
     // PIN 로그인은 AUTH_TOKEN 체크 없이 먼저 처리 (이 자체가 인증)
     if (action === 'login') {
       const pin = e.parameter.pin || '';
-      if (ADMIN_PIN && pin === ADMIN_PIN) return out({ status: 'ok', role: 'admin' });
-      if (USER_PIN  && pin === USER_PIN)  return out({ status: 'ok', role: 'user' });
+      if (ADMIN_PIN    && pin === ADMIN_PIN)    return out({ status: 'ok', role: 'admin' });
+      if (RECORDER_PIN && pin === RECORDER_PIN) return out({ status: 'ok', role: 'recorder' });
+      if (USER_PIN     && pin === USER_PIN)     return out({ status: 'ok', role: 'user' });
       return out({ status: 'error', message: 'PIN이 올바르지 않습니다.' });
     }
 

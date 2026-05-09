@@ -459,7 +459,7 @@ function renderLogin(){
   ol.innerHTML='<div class="pin-wrap">'
     +'<div class="pin-logo">⚾</div>'
     +'<div class="pin-title">우리아이 야구 기록</div>'
-    +'<div class="pin-sub">코치/감독 또는 학부모 PIN을 입력하세요</div>'
+    +'<div class="pin-sub">코치/감독, 기록자 또는 학부모 PIN을 입력하세요</div>'
     +'<input class="pin-input" id="pin-input" type="password" inputmode="numeric" maxlength="8" placeholder="PIN 입력" autocomplete="off" onkeydown="if(event.key===&apos;Enter&apos;)doLogin()">'
     +'<div class="pin-err" id="pin-err"></div>'
     +'<button class="pin-btn primary" onclick="doLogin()">로그인</button>'
@@ -745,8 +745,12 @@ function renderGHdr(){
 }
 function renderTabs(){
   const ts=[{e:'⚾',l:'타자입력'},{e:'🎯',l:'투수입력'},{e:'📋',l:'기록'},{e:'📊',l:'통계'},{e:'⚙',l:'설정'}];
-  document.getElementById('tbr').innerHTML=ts.map((t,i)=>'<button class="tab'+(S.tab===i?' on':'')+'" onclick="setTab('+i+')">'
-    +'<span style="display:block;font-size:22px;margin-bottom:2px">'+t.e+'</span>'+t.l+'</button>').join('');
+  const isRecorder=S.role==='recorder';
+  document.getElementById('tbr').innerHTML=ts.map((t,i)=>{
+    if(isRecorder&&i===3)return'';
+    return '<button class="tab'+(S.tab===i?' on':'')+'" onclick="setTab('+i+')">'
+      +'<span style="display:block;font-size:22px;margin-bottom:2px">'+t.e+'</span>'+t.l+'</button>';
+  }).join('');
 }
 function renderCt(){
   const el=document.getElementById('ct');
@@ -775,7 +779,7 @@ function renderCt(){
   else el.innerHTML=rSettings();
 }
 function r(){renderSetup();renderPlayerSel();renderLogin();renderGHdr();renderTabs();renderCt();}
-function setTab(i){S.tab=i;r();}
+function setTab(i){if(i===3&&S.role==='recorder')return;S.tab=i;r();}
 
 // ── 타자 탭 ──────────────────────────────────────────────
 function rBatTab(){
@@ -805,7 +809,8 @@ function rRunInput(){
 }
 function rBatPSel(){
   let h='<div class="seclbl">선수 선택</div><div class="pgrid">';
-  ROSTER.filter(p=>p.r==='b').forEach(p=>{
+  const userOnly=S.role==='user';
+  ROSTER.filter(p=>p.r==='b'&&(!userOnly||p.no===S.myPlayer)).forEach(p=>{
     h+='<button class="pbtn'+(S.bp===p.no?' sel-b':'')+'" onclick="selBat('+p.no+')">'
       +'<div class="pno b">'+p.no+'</div>'
       +'<div><div class="pn">'+esc(p.name)+'</div><div class="pp">'+esc(p.pos)+'</div></div>'
@@ -871,7 +876,8 @@ function rExtras(){
 function rPitTab(){
   if(!S.curPit){
     let h='<div class="seclbl">현재 투수 선택</div><div class="pgrid">';
-    ROSTER.filter(p=>p.r==='p').forEach(p=>{
+    const pitUserOnly=S.role==='user';
+    ROSTER.filter(p=>p.r==='p'&&(!pitUserOnly||p.no===S.myPlayer)).forEach(p=>{
       h+='<button class="pbtn'+(S.curPit===p.no?' sel-r':'')+'" onclick="selPit('+p.no+')">'
         +'<div class="pno r">'+p.no+'</div>'
         +'<div><div class="pn">'+esc(p.name)+'</div><div class="pp">'+esc(p.pos)+'</div></div>'
@@ -1528,11 +1534,14 @@ function rSettings(){
   const pc=pendingCount();
   const lastStr=S.lastSync?new Date(S.lastSync).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'없음';
   const isAdmin=S.role==='admin'||!S.role;
+  const isRecorder=S.role==='recorder';
   const isFirstVisit=false;
+  const roleLbl=isAdmin?'👨‍💼 감독 / 코치':isRecorder?'📋 기록자':'👨‍👩‍👦 학부모';
+  const roleColor=isAdmin?'var(--navy)':isRecorder?'#92400e':'#15803d';
 
   // ── 역할 배지 (role 설정 여부와 무관하게 항상 표시, URL 없으면 로그아웃 대신 안내)
   const roleBadge='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);padding:11px 14px;margin-bottom:10px">'
-    +'<div style="font-size:12px;color:var(--txt2)">접속 모드 <span style="font-weight:700;color:'+(isAdmin?'var(--navy)':'#15803d')+';margin-left:6px">'+(isAdmin?'👨‍💼 감독 / 코치':'👨‍👩‍👦 학부모')+'</span></div>'
+    +'<div style="font-size:12px;color:var(--txt2)">접속 모드 <span style="font-weight:700;color:'+roleColor+';margin-left:6px">'+roleLbl+'</span></div>'
     +(S.scriptUrl
       ?'<button onclick="doLogout()" style="font-size:12px;color:var(--txt2);background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 12px;min-height:34px;cursor:pointer;font-family:inherit">로그아웃</button>'
       :'<span style="font-size:11px;color:var(--txt2)">URL 연결 시 PIN 로그인</span>')
