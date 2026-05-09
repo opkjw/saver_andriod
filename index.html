@@ -828,10 +828,16 @@ function rRunInput(){
   });
   return h+'</div>';
 }
+function getAllowedNos(){
+  if(S.role!=='user')return null;
+  var nos=S.myPlayer!=null?[S.myPlayer]:[];
+  getSiblingGroup().forEach(function(p){if(nos.indexOf(p.no)<0)nos.push(p.no);});
+  return nos;
+}
 function rBatPSel(){
   let h='<div class="seclbl">선수 선택</div><div class="pgrid">';
-  const userOnly=S.role==='user';
-  ROSTER.filter(p=>p.r==='b'&&(!userOnly||p.no===S.myPlayer)).forEach(p=>{
+  const allowedNos=getAllowedNos();
+  ROSTER.filter(p=>p.r==='b'&&(!allowedNos||allowedNos.indexOf(p.no)>=0)).forEach(p=>{
     h+='<button class="pbtn'+(S.bp===p.no?' sel-b':'')+'" onclick="selBat('+p.no+')">'
       +'<div class="pno b">'+p.no+'</div>'
       +'<div><div class="pn">'+esc(p.name)+'</div><div class="pp">'+esc(p.pos)+'</div></div>'
@@ -897,8 +903,8 @@ function rExtras(){
 function rPitTab(){
   if(!S.curPit){
     let h='<div class="seclbl">현재 투수 선택</div><div class="pgrid">';
-    const pitUserOnly=S.role==='user';
-    ROSTER.filter(p=>p.r==='p'&&(!pitUserOnly||p.no===S.myPlayer)).forEach(p=>{
+    const pitAllowedNos=getAllowedNos();
+    ROSTER.filter(p=>p.r==='p'&&(!pitAllowedNos||pitAllowedNos.indexOf(p.no)>=0)).forEach(p=>{
       h+='<button class="pbtn'+(S.curPit===p.no?' sel-r':'')+'" onclick="selPit('+p.no+')">'
         +'<div class="pno r">'+p.no+'</div>'
         +'<div><div class="pn">'+esc(p.name)+'</div><div class="pp">'+esc(p.pos)+'</div></div>'
