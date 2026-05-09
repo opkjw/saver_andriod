@@ -269,7 +269,7 @@ let S={
   // 통계
   sprayPlayer:null,statsFilter:'all',statsShowAll:false,
   // 기록
-  logGameId:null,calMonth:null,myPlayer:null,logView:'player',logExpanded:{},logPitView:'player',pitExpanded:{},
+  logGameId:null,calMonth:null,myPlayer:null,logView:'player',logExpanded:{},logPitView:'player',pitExpanded:{},logSection:'bat',
   // 설정
   rosterSub:0,schoolName:"",role:null,setupStep:0,setupDone:false,showPlayerSel:false,activeChild:null,bases:{b1:null,b2:null,b3:null},outs:0,
   // 데이터
@@ -1049,7 +1049,7 @@ function rLog(){
     var dc=dow===0?'#ef4444':dow===6?'#3b82f6':'var(--txt)';
     var isCurG=g&&S.game&&g.id===S.game.id;
     h+='<div class="cal-cell'+(g?' has-game':'')+(isSel?' selected':'')+'"'
-      +(g?' onclick="var _gid=\''+g.id+'\';S.logGameId=(_gid===S.logGameId?null:_gid);S.calMonth=\''+calMon+'\';S.logExpanded={};S.pitExpanded={};renderCt()"':'')+' >';
+      +(g?' onclick="var _gid=\''+g.id+'\';S.logGameId=(_gid===S.logGameId?null:_gid);S.calMonth=\''+calMon+'\';S.logExpanded={};S.pitExpanded={};S.logSection=\'bat\';renderCt()"':'')+' >';
     h+='<span class="cal-day" style="color:'+dc+'">'+(isCurG?'<strong>'+day+'</strong>':day)+'</span>';
     if(g)h+='<span class="cal-dot" style="background:'+(isOff?'var(--navy)':'#16a34a')+'"></span>';
     h+='</div>';
@@ -1161,7 +1161,15 @@ function rLog(){
     return h;
   }
 
-  if(be.length){
+  // 타자/투수 섹션 탭
+  var logSec=S.logSection||'bat';
+  var secTabS='flex:1;padding:12px 0;border:none;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--txt2);';
+  h+='<div style="display:flex;border-bottom:1px solid var(--bdr);margin-bottom:4px">'
+    +'<button onclick="S.logSection=\'bat\';renderCt()" style="'+secTabS+(logSec==='bat'?'border-bottom-color:var(--navy);color:var(--navy)':'')+'">⚾ 타자 기록'+(be.length?' ('+be.length+')':'')+'</button>'
+    +'<button onclick="S.logSection=\'pit\';renderCt()" style="'+secTabS+(logSec==='pit'?'border-bottom-color:var(--red);color:var(--red)':'')+'">🎯 투수 기록'+(pbf.length?' ('+pbf.length+')':'')+'</button>'
+    +'</div>';
+
+  if(logSec==='bat'&&be.length){
     var logView=S.logView||'seq';
     var aBtnS='border:none;border-radius:var(--r);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-height:36px;';
     var aBtnOff='background:#e5e7eb;color:#111827;';
@@ -1238,7 +1246,13 @@ function rLog(){
       });
     }
   }
-  if(pbf.length){
+  if(logSec==='bat'&&!be.length){
+    h+='<div class="empty" style="padding:32px 24px">이 경기의 타자 기록이 없습니다.</div>';
+  }
+  if(logSec==='pit'&&!pbf.length){
+    h+='<div class="empty" style="padding:32px 24px">이 경기의 투수 기록이 없습니다.</div>';
+  }
+  if(logSec==='pit'&&pbf.length){
     var pitView=S.logPitView||'player';
     var pBtnS='border:none;border-radius:var(--r);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-height:36px;';
     var pBtnOff='background:#e5e7eb;color:#111827;';
