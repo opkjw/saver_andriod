@@ -1846,9 +1846,9 @@ function rRunConfirm(){
   var pno=pending.pno;
   var from=pending.from;
   var runner=ROSTER.find(function(x){return Number(x.no)===Number(pno);})||{name:'주자',no:pno};
-  var fromLabel=from==='b2'?'2루에 있던 주자':'1루에 있던 주자';
+  var fromLabel=from==='b3'?'3루에 있던 주자':from==='b2'?'2루에 있던 주자':'1루에 있던 주자';
   var noLabel,noDesc,yesLabel,yesDesc;
-  if(from==='b2'){noLabel='3루 머묾';noDesc='진루 안 함';yesLabel='홈 득점!';yesDesc='+1 득점 +1 타점';}
+  if(from==='b3'||from==='b2'){noLabel='3루 머묾';noDesc='진루 안 함';yesLabel='홈 득점!';yesDesc='+1 득점 +1 타점';}
   else{noLabel='3루 진루';noDesc='득점 안 함';yesLabel='홈 득점!';yesDesc='+1 득점 +1 타점';}
   var h='<div class="shdr"><button class="back" onclick="S.bs=1;S.pendingScores=[];S.runnerDecisions={};r()">←</button>'
     +'<div><div class="s-title">'+esc(batter.name)+' <span class="badge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700">'+oc.l+'</span></div>'
@@ -1886,6 +1886,7 @@ function selOC(id){
   S.runnerDecisions={};
   var b=S.bases;
   var pending=[];
+  if((id==='1B'||id==='2B')&&b.b3!=null)pending.push({pno:b.b3,from:'b3'});
   if((id==='1B'||id==='2B')&&b.b2!=null)pending.push({pno:b.b2,from:'b2'});
   if(id==='2B'&&b.b1!=null)pending.push({pno:b.b1,from:'b1'});
   S.pendingScores=pending;
@@ -2122,9 +2123,8 @@ function calcAutoRBI(oc){
   var b=S.bases;
   if(oc==='HR')return (b.b1!=null?1:0)+(b.b2!=null?1:0)+(b.b3!=null?1:0)+1;
   if(oc==='3B')return (b.b1!=null?1:0)+(b.b2!=null?1:0)+(b.b3!=null?1:0);
-  // 2루 주자는 진루 확인 후 RBI 결정 → 초기엔 b3만 포함
-  if(oc==='2B')return (b.b3!=null?1:0);
-  if(oc==='1B')return (b.b3!=null?1:0);
+  if(oc==='2B')return 0;
+  if(oc==='1B')return 0;
   if(oc==='SF')return (b.b3!=null?1:0);
   if(oc==='BB'||oc==='IBB'||oc==='HBP'||oc==='KWP')return (b.b1!=null&&b.b2!=null&&b.b3!=null)?1:0;
   return 0;
@@ -2139,20 +2139,26 @@ function applyBaseAdvancement(oc,pno){
     if(b.b1!=null)scoreRunnerBase(b.b1);if(b.b2!=null)scoreRunnerBase(b.b2);if(b.b3!=null)scoreRunnerBase(b.b3);
     S.bases={b1:null,b2:null,b3:pno};
   }else if(oc==='2B'){
-    if(b.b3!=null)scoreRunnerBase(b.b3);
+    var b3sc2=b.b3!=null&&S.runnerDecisions&&S.runnerDecisions[b.b3]===true;
     var b2sc2=b.b2!=null&&S.runnerDecisions&&S.runnerDecisions[b.b2]===true;
     var b1sc2=b.b1!=null&&S.runnerDecisions&&S.runnerDecisions[b.b1]===true;
+    if(b3sc2)scoreRunnerBase(b.b3);
     if(b2sc2)scoreRunnerBase(b.b2);
     if(b1sc2)scoreRunnerBase(b.b1);
     var nb3_2=null;
-    if(b.b2!=null&&!b2sc2)nb3_2=b.b2;
+    if(b.b3!=null&&!b3sc2)nb3_2=b.b3;
+    else if(b.b2!=null&&!b2sc2)nb3_2=b.b2;
     else if(b.b1!=null&&!b1sc2)nb3_2=b.b1;
     S.bases={b1:null,b2:pno,b3:nb3_2};
   }else if(oc==='1B'){
-    if(b.b3!=null)scoreRunnerBase(b.b3);
-    var b2sc1=S.runnerDecisions&&S.runnerDecisions[b.b2]===true;
-    if(b.b2!=null&&b2sc1){scoreRunnerBase(b.b2);S.bases={b1:pno,b2:b.b1!=null?b.b1:null,b3:null};}
-    else{S.bases={b1:pno,b2:b.b1!=null?b.b1:null,b3:b.b2!=null?b.b2:null};}
+    var b3sc1=b.b3!=null&&S.runnerDecisions&&S.runnerDecisions[b.b3]===true;
+    var b2sc1=b.b2!=null&&S.runnerDecisions&&S.runnerDecisions[b.b2]===true;
+    if(b3sc1)scoreRunnerBase(b.b3);
+    if(b2sc1)scoreRunnerBase(b.b2);
+    var nb3_1,nb2_1;
+    if(b.b3!=null&&!b3sc1){nb3_1=b.b3;nb2_1=(!b2sc1&&b.b2!=null)?b.b2:null;}
+    else{nb3_1=(!b2sc1&&b.b2!=null)?b.b2:null;nb2_1=null;}
+    S.bases={b1:pno,b2:nb2_1,b3:nb3_1};
   }else if(oc==='BB'||oc==='IBB'||oc==='HBP'||oc==='KWP'){
     if(b.b1!=null&&b.b2!=null&&b.b3!=null){scoreRunnerBase(b.b3);S.bases={b1:pno,b2:b.b1,b3:b.b2};}
     else if(b.b1!=null&&b.b2!=null){S.bases={b1:pno,b2:b.b1,b3:b.b2};}
