@@ -967,10 +967,10 @@ function rPitRunInput(){
   if(runs.length){
     h+='<p style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:4px">실점 기록</p><div>';
     runs.slice().reverse().forEach(e=>{
-      h+='<div class="rlogitem"><div class="rdot '+(e.earned?'e':'u')+'"></div>'
+      h+='<div class="rlogitem" onclick="showEditPitRunModal(\''+e.id+'\')" style="cursor:pointer"><div class="rdot '+(e.earned?'e':'u')+'"></div>'
         +'<div style="flex:1;font-size:12px;color:var(--txt2)">'+(e.earned?'자책점':'비자책점')+'</div>'
-        +'<button onclick="showEditPitRunModal(\''+e.id+'\')" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 8px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit;margin-right:4px">✏</button>'
-        +'<button class="rdel" onclick="delPitRun(\''+e.id+'\')">✕</button></div>';
+        +'<span style="font-size:11px;color:var(--txt2)">✏ 편집/삭제</span>'
+        +'</div>';
     });
     h+='</div>';
   }
@@ -1279,11 +1279,7 @@ function rLog(){
         if(pitRuns.length){
           h+='<div style="font-size:12px;color:var(--txt2);padding:6px 0 2px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">실점: ';
           pitRuns.forEach(function(r){
-            h+='<span style="display:inline-flex;align-items:center;gap:4px;background:'+(r.earned?'#fee2e2':'var(--bg2)')+';border-radius:4px;padding:3px 6px">'
-              +'<span style="font-size:11px;font-weight:600;color:'+(r.earned?'#b91c1c':'var(--txt2)')+';">'+(r.earned?'자책':'비자책')+'</span>'
-              +'<button onclick="showEditPitRunModal(\''+r.id+'\')" style="background:none;border:none;font-size:11px;color:var(--txt2);cursor:pointer;padding:0;line-height:1">✏</button>'
-              +'<button onclick="delPitRun(\''+r.id+'\')" style="background:none;border:none;font-size:13px;color:#dc2626;cursor:pointer;padding:0;line-height:1">✕</button>'
-              +'</span>';
+            h+='<span onclick="showEditPitRunModal(\''+r.id+'\')" style="cursor:pointer;display:inline-block;background:'+(r.earned?'#fee2e2':'var(--bg2)')+';color:'+(r.earned?'#b91c1c':'var(--txt2)')+';border-radius:4px;padding:5px 10px;font-size:12px;font-weight:600">'+(r.earned?'자책':'비자책')+' ✏</span>';
           });
           h+='</div>';
         }
@@ -2132,7 +2128,9 @@ function renderEditModal(){
       h+='</div>';
     }
   }
-  h+='<div class="em-btns"><button class="em-cancel" onclick="closeModal()">취소</button><button class="em-save" onclick="confirmEditEntry()">✓ 저장</button></div></div></div>';
+  h+='<div class="em-btns"><button class="em-cancel" onclick="closeModal()">취소</button>'
+    +(isPitRun?'<button onclick="delPitRun(\''+es.id+'\');closeModal()" style="flex:1;padding:14px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff;color:#dc2626;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit">🗑 삭제</button>':'')
+    +'<button class="em-save" onclick="confirmEditEntry()">✓ 저장</button></div></div></div>';
   document.getElementById('modal-root').innerHTML=h;
 }
 function confirmEditEntry(){
