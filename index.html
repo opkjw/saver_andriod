@@ -1474,9 +1474,8 @@ function rSettings(){
         +'<div class="srow"><span>투수 타자 결과</span><span>'+S.pit_bf.length+'건</span></div>'
         +'<div class="srow"><span>동기화 대기</span><span style="color:'+(pc>0?'#b45309':'#15803d')+'">'+(pc>0?pc+'건 ⚠':'✓')+'</span></div>'
         +'<div class="srow"><span>마지막 동기화</span><span>'+lastStr+'</span></div>'
-        +'<button class="syncbig" onclick="doSync()" '+((!S.scriptUrl||S.syncing||pc===0)?'disabled':'')+'>☁ '+(S.syncing?'동기화 중...':'구글 시트로 전송 ('+pc+'건)')+'</button>'
-        +'<button onclick="loadFromSheets()" '+((!S.scriptUrl||S.loading)?'disabled':'')+' style="width:100%;margin-top:8px;padding:13px;background:var(--bg2);color:var(--navy);border:1.5px solid var(--navy);border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">☁ '+(S.loading?'불러오는 중...':'구글 시트에서 불러오기')+'</button>'
-        +'<div style="margin-top:7px;font-size:11px;color:var(--txt2);line-height:1.6;background:var(--bg2);padding:8px 10px;border-radius:var(--r)">💡 <strong>새 기기에서 처음 접속할 때</strong> 사용하세요.</div>'
+        +'<button class="syncbig" onclick="doSync()" '+((!S.scriptUrl||S.syncing||pc===0)?'disabled':'')+'>☁ '+(S.syncing?'동기화 중...':'클라우드로 동기화 ('+pc+'건)')+'</button>'
+        +'<button onclick="loadFromSheets()" '+((!S.scriptUrl||S.loading)?'disabled':'')+' style="width:100%;margin-top:8px;padding:13px;background:var(--bg2);color:var(--navy);border:1.5px solid var(--navy);border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">☁ '+(S.loading?'불러오는 중...':'클라우드에서 데이터 가져오기')+'</button>'
         +'</div>'
       :'')
     +'<div class="cfgcard">'
@@ -1492,10 +1491,9 @@ function rSettings(){
           var inner=myP
             ?'<div style="display:flex;align-items:center;gap:10px">'
               +'<div style="width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+myP.no+'</div>'
-              +'<div style="flex:1"><div style="font-size:16px;font-weight:700;color:var(--txt)">'+esc(myP.name)+'</div><div style="font-size:12px;color:var(--txt2)">'+esc(myP.pos)+'</div></div>'
-              +'<button onclick="S.showPlayerSel=true;renderPlayerSel()" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:6px 12px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit;min-height:36px">변경</button>'
+              +'<div><div style="font-size:16px;font-weight:700;color:var(--txt)">'+esc(myP.name)+'</div><div style="font-size:12px;color:var(--txt2)">'+esc(myP.pos)+'</div></div>'
               +'</div>'
-            :'<div style="font-size:13px;color:var(--txt2)">선택된 선수 없음 — <button onclick="S.showPlayerSel=true;renderPlayerSel()" style="background:none;border:none;color:var(--navy);font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">선택하기</button></div>';
+            :'<div style="font-size:13px;color:var(--txt2)">선택된 선수 없음</div>';
           return inner;
         }()))
     +'</div>'
