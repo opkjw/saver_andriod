@@ -814,13 +814,7 @@ function setTab(i){if(i===3&&S.role==='recorder')return;S.tab=i;r();}
 
 // ── 타자 탭 ──────────────────────────────────────────────
 function rBatTab(){
-  const sub=S.bs===0
-    ?('<div class="stabs">'
-      +'<button class="stab bat'+(S.batSub===0?' on':'')+'" onclick="S.batSub=0;r()">👤 타석 입력</button>'
-      +'<button class="stab bat'+(S.batSub===1?' on':'')+'" onclick="S.batSub=1;r()">🏃 득점 처리</button>'
-      +'</div>'):'';
-  if(S.batSub===1&&S.bs===0)return sub+rRunInput();
-  return sub+(S.bs===0?rBatPSel():S.bs===1?rOCSel('bat'):S.bs===2?rRunConfirm():rExtras());
+  return S.bs===0?rBatPSel():S.bs===1?rOCSel('bat'):S.bs===2?rRunConfirm():rExtras();
 }
 function rRunInput(){
   const batters=getBattersThisGame();
@@ -886,7 +880,7 @@ function rExtras(){
   let h='<div class="shdr"><button class="back" onclick="S.bs=(S.pendingScores&&S.pendingScores.length>0||Object.keys(S.runnerDecisions||{}).length>0)?2:1;r()">←</button>'
     +'<div style="flex:1"><div class="s-title">'+esc(p.name)+'</div><div class="s-sub">추가 기록 입력</div></div>'
     +'<span class="badge" style="background:'+oc.bg+';color:'+oc.fg+'">'+oc.l+'</span></div>'
-    +'<div class="callout"><strong>득점</strong>은 홈 밟는 순간 <strong>득점 처리</strong> 탭에서 입력하세요.</div>'
+    +'<div class="callout">폭투·보크 등 득점은 <strong>베이스 현황</strong>의 <strong>홈인🏠</strong> 버튼으로 처리하세요.</div>'
     +'<div class="extras" style="grid-template-columns:'+(showRbi?'repeat(3,1fr)':'repeat(2,1fr)')+'">';
   if(showRbi)h+='<div class="excard"><div class="exlbl">타점 (RBI)</div><div class="exval" id="ev-brbi">'+S.brbi+'</div><div class="exbtns"><button class="exbtn" onclick="adj(\'brbi\',-1)">−</button><button class="exbtn" onclick="adj(\'brbi\',1)">+</button></div></div>';
   h+='<div class="excard"><div class="exlbl">도루 (SB)</div><div class="exval" id="ev-bsb">'+S.bsb+'</div><div class="exbtns"><button class="exbtn" onclick="adj(\'bsb\',-1)">−</button><button class="exbtn" onclick="adj(\'bsb\',1)">+</button></div></div>';
@@ -2090,6 +2084,11 @@ function rBaseDiagram(){
     if(p){
       h+='<div style="background:var(--navy);color:#fff;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:700">#'+p.no+' '+esc(p.name.length>4?p.name.slice(0,4)+'…':p.name)+'</div>';
       h+='<div style="display:flex;gap:3px;margin-top:4px;justify-content:center">';
+      if(key==='b3'){
+        h+='<button onclick="advanceBase(\'b3\')" style="background:#b91c1c;color:#fff;border:none;border-radius:4px;padding:4px 6px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">홈인🏠</button>';
+      }else{
+        h+='<button onclick="advanceBase(\''+key+'\')" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:4px 6px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">진루⬆</button>';
+      }
       h+='<button onclick="stealBase(\''+key+'\')" style="background:#16a34a;color:#fff;border:none;border-radius:4px;padding:4px 6px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">도루✓</button>';
       h+='<button onclick="caughtBase(\''+key+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:4px 6px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">도루✗</button>';
       h+='<button onclick="removeFromBase(\''+key+'\')" style="background:#6b7280;color:#fff;border:none;border-radius:4px;padding:4px 6px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">아웃</button>';
@@ -2174,6 +2173,20 @@ function applyBaseAdvancement(oc,pno){
   }else if(oc==='SH'){
     S.outs=(S.outs||0)+1;if(b.b3!=null)scoreRunnerBase(b.b3);
     S.bases={b1:null,b2:b.b1!=null?b.b1:null,b3:b.b2!=null?b.b2:null};
+  }
+}
+function advanceBase(base){
+  var pno=S.bases[base];if(pno==null)return;
+  var p=ROSTER.find(function(x){return Number(x.no)===Number(pno);});
+  if(base==='b3'){
+    scoreRunnerBase(pno);S.bases.b3=null;
+    save();renderCt();toast((p?p.name:'선수')+' 홈인!','ok');
+  }else if(base==='b2'){
+    S.bases.b3=pno;S.bases.b2=null;
+    save();renderCt();toast((p?p.name:'선수')+' 3루 진루','ok');
+  }else if(base==='b1'){
+    S.bases.b2=pno;S.bases.b1=null;
+    save();renderCt();toast((p?p.name:'선수')+' 2루 진루','ok');
   }
 }
 function stealBase(base){
