@@ -108,7 +108,7 @@ tr:nth-child(even) td{background:var(--bg2)}
 .cfgwrap{padding:12px}
 .cfgcard{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);padding:15px;margin-bottom:10px}
 .cfgtitle{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.cfginput{width:100%;border:1px solid var(--bdr2);border-radius:var(--r);padding:10px 11px;font-size:12px;font-family:'SF Mono',Consolas,monospace;color:var(--txt);background:var(--bg2);outline:none;margin-bottom:8px;-webkit-appearance:none}
+.cfginput{width:100%;border:1px solid var(--bdr2);border-radius:var(--r);padding:10px 11px;font-size:16px;font-family:'SF Mono',Consolas,monospace;color:var(--txt);background:var(--bg2);outline:none;margin-bottom:8px;-webkit-appearance:none}
 .cfginput:focus{border-color:var(--navy)}
 .cfgrow{display:flex;gap:7px}
 .cfgbtn{flex:1;padding:11px 9px;min-height:44px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg2);color:var(--txt);cursor:pointer;font-size:12px;text-align:center;font-family:inherit}
@@ -269,7 +269,7 @@ let S={
   // 통계
   sprayPlayer:null,statsFilter:'all',statsShowAll:false,
   // 기록
-  logGameId:null,calMonth:null,myPlayer:null,
+  logGameId:null,calMonth:null,myPlayer:null,logView:'seq',logExpanded:{},
   // 설정
   rosterSub:0,schoolName:"",role:null,setupStep:0,setupDone:false,showPlayerSel:false,activeChild:null,bases:{b1:null,b2:null,b3:null},outs:0,
   // 데이터
@@ -977,6 +977,11 @@ function rPitRunInput(){
 }
 
 // ── 기록 탭 (전체 경기 목록) ──────────────────────────────
+function toggleLogPlayer(pno){
+  if(!S.logExpanded)S.logExpanded={};
+  S.logExpanded[String(pno)]=!S.logExpanded[String(pno)];
+  renderCt();
+}
 function rLog(){
   // 전체 경기 목록 수집
   const allGames=[...S.games].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
@@ -1038,7 +1043,7 @@ function rLog(){
     var dc=dow===0?'#ef4444':dow===6?'#3b82f6':'var(--txt)';
     var isCurG=g&&S.game&&g.id===S.game.id;
     h+='<div class="cal-cell'+(g?' has-game':'')+(isSel?' selected':'')+'"'
-      +(g?' onclick="var _gid=\''+g.id+'\';S.logGameId=(_gid===S.logGameId?null:_gid);S.calMonth=\''+calMon+'\';renderCt()"':'')+' >';
+      +(g?' onclick="var _gid=\''+g.id+'\';S.logGameId=(_gid===S.logGameId?null:_gid);S.calMonth=\''+calMon+'\';S.logExpanded={};renderCt()"':'')+' >';
     h+='<span class="cal-day" style="color:'+dc+'">'+(isCurG?'<strong>'+day+'</strong>':day)+'</span>';
     if(g)h+='<span class="cal-dot" style="background:'+(isOff?'var(--navy)':'#16a34a')+'"></span>';
     h+='</div>';
@@ -1151,25 +1156,81 @@ function rLog(){
   }
 
   if(be.length){
-    h+='<div class="seclbl">타자 기록 ('+be.length+'타석)</div>';
-    be.slice().reverse().forEach(e=>{
-      const oc=ocInfo(e.oc);
-      const ex=[];
-      if(e.rbi>0)ex.push(e.rbi+'타점');
-      if(e.run>0)ex.push(e.run+'득점');
-      if(e.sb>0)ex.push('도루');
-      if(e.zone)ex.push('📍'+e.zone);
-      const sy=S.syncedIds.has(e.id);
-      h+='<div class="logitem">'
-        +'<div class="logbadge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:10px">'+oc.l+'</div>'
-        +'<div style="flex:1;min-width:0">'
-        +'<div class="logplayer">'+esc(e.pn)+' <span style="font-size:10px;color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
-        +'<div class="logdetail">'+(ex.length?ex.join(' · '):'—')+'</div>'
-        +'</div>'
-        +'<button onclick="showEditBatModal(\''+e.id+'\')" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 8px;font-size:11px;color:var(--txt2);cursor:pointer;margin-right:4px;font-family:inherit">✏</button>'
-        +'<button class="delbtn" onclick="del(\'b\',\''+e.id+'\')">✕</button>'
-        +'</div>';
-    });
+    var logView=S.logView||'seq';
+    var aBtnS='border:none;border-radius:var(--r);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-height:36px;';
+    var aBtnOff='background:#e5e7eb;color:#111827;';
+    h+='<div class="seclbl" style="display:flex;align-items:center;gap:6px">'
+      +'<span style="flex:1">타자 기록 ('+be.length+'타석)</span>'
+      +'<button onclick="S.logView=\'seq\';renderCt()" style="'+aBtnS+(logView==='seq'?'background:var(--navy);color:#fff':aBtnOff)+'">타석순</button>'
+      +'<button onclick="S.logView=\'player\';renderCt()" style="'+aBtnS+(logView==='player'?'background:var(--navy);color:#fff':aBtnOff)+'">선수별</button>'
+      +'</div>';
+
+    if(logView==='seq'){
+      be.slice().reverse().forEach(function(e){
+        var oc=ocInfo(e.oc);
+        var ex=[];
+        if(e.rbi>0)ex.push(e.rbi+'타점');
+        if(e.run>0)ex.push(e.run+'득점');
+        if(e.sb>0)ex.push('도루');
+        if(e.zone)ex.push('📍'+e.zone);
+        var sy=S.syncedIds.has(e.id);
+        h+='<div class="logitem">'
+          +'<div class="logbadge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:10px">'+oc.l+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div class="logplayer">'+esc(e.pn)+' <span style="font-size:10px;color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
+          +'<div class="logdetail">'+(ex.length?ex.join(' · '):'—')+'</div>'
+          +'</div>'
+          +'<button onclick="showEditBatModal(\''+e.id+'\')" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 8px;font-size:11px;color:var(--txt2);cursor:pointer;margin-right:4px;font-family:inherit">✏</button>'
+          +'<button class="delbtn" onclick="del(\'b\',\''+e.id+'\')">✕</button>'
+          +'</div>';
+      });
+    } else {
+      // 선수별 그룹 뷰
+      var pGroups={},pOrder=[];
+      be.forEach(function(e){
+        if(!pGroups[e.pno]){pGroups[e.pno]=[];pOrder.push(e.pno);}
+        pGroups[e.pno].push(e);
+      });
+      pOrder.forEach(function(pno){
+        var entries=pGroups[pno];
+        var rp=ROSTER.find(function(x){return x.no===pno;})||{name:'#'+pno,no:pno};
+        var ab=0,hits=0,rbi=0,run=0,sb=0;
+        entries.forEach(function(e){var s=paS(e.oc);ab+=s.ab;hits+=s.h;rbi+=(e.rbi||0);run+=(e.run||0);sb+=(e.sb||0);});
+        var avg=ab>0?(hits/ab).toFixed(3).replace(/^0/,''):'.000';
+        var isExp=!!(S.logExpanded&&S.logExpanded[String(pno)]);
+        h+='<div class="logitem" style="flex-direction:column;align-items:stretch;gap:0;padding:10px 12px">'
+          +'<div onclick="toggleLogPlayer('+pno+')" style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+          +'<div class="logbadge" style="background:var(--navy);color:#fff;font-size:11px">#'+pno+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div class="logplayer">'+esc(rp.name)+'</div>'
+          +'<div class="logdetail">'+ab+'타수 '+hits+'안타 '+avg+(rbi?' · '+rbi+'타점':'')+(run?' · '+run+'득점':'')+(sb?' · '+sb+'도루':'')+'</div>'
+          +'</div>'
+          +'<span style="font-size:14px;color:var(--txt2);flex-shrink:0">'+(isExp?'▲':'▼')+'</span>'
+          +'</div>';
+        if(isExp){
+          h+='<div style="padding-top:8px;margin-top:8px;border-top:1px solid var(--bdr);display:flex;flex-direction:column;gap:6px">';
+          entries.slice().reverse().forEach(function(e){
+            var oc=ocInfo(e.oc);
+            var ex=[];
+            if(e.rbi>0)ex.push(e.rbi+'타점');
+            if(e.run>0)ex.push(e.run+'득점');
+            if(e.sb>0)ex.push('도루');
+            if(e.zone)ex.push('📍'+e.zone);
+            var sy=S.syncedIds.has(e.id);
+            h+='<div style="display:flex;align-items:center;gap:8px">'
+              +'<div class="logbadge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:10px;flex-shrink:0">'+oc.l+'</div>'
+              +'<div style="flex:1;min-width:0">'
+              +'<div class="logdetail" style="font-size:12px">'+(ex.length?ex.join(' · '):'—')+' <span style="color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
+              +'</div>'
+              +'<button onclick="showEditBatModal(\''+e.id+'\')" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:7px 10px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit;flex-shrink:0;min-height:36px">✏</button>'
+              +'<button class="delbtn" onclick="del(\'b\',\''+e.id+'\')" style="flex-shrink:0;min-height:36px;min-width:36px">✕</button>'
+              +'</div>';
+          });
+          h+='</div>';
+        }
+        h+='</div>';
+      });
+    }
   }
   if(pbf.length){
     const pnos=[...new Set(pbf.map(e=>e.pno))];
