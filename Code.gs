@@ -12,13 +12,18 @@ const AUTH_TOKEN = '';
 const ADMIN_PIN = '1234';
 const USER_PIN  = '0000';
 
+// 팀/학교명 — 학부모 앱 접속 시 자동으로 채워집니다
+// 빈 문자열('')이면 학부모가 직접 입력
+const TEAM_NAME = '';
+
 // ── 시트 이름 상수 ──────────────────────────────────────────
 const SHEETS = {
   games:    'games',
   bat_log:  'bat_log',
   pit_bf:   'pit_bf',
   pit_runs: 'pit_runs',
-  roster:   'roster'
+  roster:   'roster',
+  teams:    'teams'   // 팀명 목록 시트 (헤더: name)
 };
 
 // ── 유틸: 토큰 인증 검사 ───────────────────────────────────
@@ -200,12 +205,20 @@ function doGet(e) {
     if (action === 'fetch') {
       return out({
         status:   'ok',
+        teamName: TEAM_NAME,
         games:    readAll(SHEETS.games),
         bat_log:  readAll(SHEETS.bat_log),
         pit_bf:   readAll(SHEETS.pit_bf),
         pit_runs: readAll(SHEETS.pit_runs),
         roster:   readAll(SHEETS.roster)
       });
+    }
+
+    // 팀명 목록 불러오기
+    if (action === 'getTeams') {
+      var rows = readAll(SHEETS.teams);
+      var teams = rows.map(function(r){ return r.name || ''; }).filter(Boolean);
+      return out({ status: 'ok', teams: teams });
     }
 
     // 연결 테스트
