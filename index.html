@@ -2139,7 +2139,8 @@ function rBaseDiagram(){
 function scoreRunnerBase(pno){
   if(!S.game||pno==null)return;
   var ents=S.blog.filter(function(e){return e.gid===S.game.id&&Number(e.pno)===Number(pno);});
-  if(ents.length){var last=ents[ents.length-1];last.run=(last.run||0)+1;}
+  if(ents.length){ents[ents.length-1].run=(ents[ents.length-1].run||0)+1;}
+  else{var p=ROSTER.find(function(x){return Number(x.no)===Number(pno);});if(p)S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:p.no,pn:p.name,oc:'_RUN',rbi:0,run:1,sb:0,cs:0});}
 }
 function calcAutoRBI(oc){
   var b=S.bases;
