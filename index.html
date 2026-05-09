@@ -526,12 +526,12 @@ function renderSetup(){
       +'<input class="su-input" id="su-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" value="'+esc(S.scriptUrl)+'" autocomplete="off" spellcheck="false">'
       +'</div>'
       +'<div class="su-connst" id="su-connst"></div>';
-    actions='<button class="su-next" id="su-fetch-btn" onclick="saveSetupUrl()">연결 및 불러오기</button>'
-      +'<button class="su-skip" onclick="finishSetup(true)">건너뛰기</button>';
+    actions='<button class="su-next" id="su-fetch-btn" onclick="saveSetupUrl()">연결 및 불러오기</button>';
   } else if(step===2){
     // 우리 아이 선택
     var rosterHtml='';
-    ROSTER.forEach(function(p){
+    var uniquePlayers=[...new Map(ROSTER.map(function(p){return[p.no,p];})).values()];
+    uniquePlayers.forEach(function(p){
       var sel=S.myPlayer===p.no;
       rosterHtml+='<button onclick="S.myPlayer='+(sel?'null':p.no)+';renderSetup()" style="display:flex;align-items:center;gap:10px;width:100%;background:'+(sel?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)')+';border:1.5px solid '+(sel?'rgba(255,255,255,.55)':'rgba(255,255,255,.1)')+';border-radius:12px;padding:12px 14px;margin-bottom:7px;cursor:pointer;font-family:inherit;text-align:left">'
         +'<div style="width:34px;height:34px;border-radius:50%;background:'+(p.r==='p'?'#c0392b':'rgba(255,255,255,.18)')+';color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+p.no+'</div>'
