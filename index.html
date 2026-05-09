@@ -309,9 +309,14 @@ function save(){
 
 function getSiblingGroup(){
   if(!S.myPlayer)return[];
-  var me=ROSTER.find(function(x){return x.no===S.myPlayer;});
-  if(!me||!me.siblings||!me.siblings.length)return[];
-  return me.siblings.map(function(sno){return ROSTER.find(function(x){return x.no===sno;});}).filter(Boolean);
+  // 같은 번호가 타자/투수 두 항목으로 있을 수 있으므로 모든 항목에서 siblings 수집
+  var sibNos=[];
+  ROSTER.filter(function(x){return x.no===S.myPlayer;}).forEach(function(me){
+    if(me.siblings)me.siblings.forEach(function(s){if(sibNos.indexOf(s)<0)sibNos.push(s);});
+  });
+  if(!sibNos.length)return[];
+  var seen=new Set();
+  return sibNos.map(function(sno){return ROSTER.find(function(x){return x.no===sno;});}).filter(function(p){return p&&!seen.has(p.no)&&seen.add(p.no);});
 }
 function activeNo(){return S.activeChild!=null?S.activeChild:S.myPlayer;}
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1860,16 +1865,28 @@ function confirmEditEntry(){
 
 // ── 선수 관리 ─────────────────────────────────────────────
 function toggleSibling(no,sibNo){
-  var a=ROSTER.find(function(x){return x.no===no;});
-  var b=ROSTER.find(function(x){return x.no===sibNo;});
-  if(!a||!b)return;
-  if(!a.siblings)a.siblings=[];
-  if(!b.siblings)b.siblings=[];
-  var ai=a.siblings.indexOf(sibNo);
-  var bi=b.siblings.indexOf(no);
-  if(ai>=0){a.siblings.splice(ai,1);}else{a.siblings.push(sibNo);}
-  if(bi>=0){b.siblings.splice(bi,1);}else{b.siblings.push(no);}
-  S.rosterDirty=true;save();showEditPlayerModal(no,ROSTER.find(function(x){return x.no===no;}).r);
+  var allA=ROSTER.filter(function(x){return x.no===no;});
+  var allB=ROSTER.filter(function(x){return x.no===sibNo;});
+  if(!allA.length||!allB.length)return;
+  // 추가/제거 여부는 첫 항목 기준으로 결정
+  if(!allA[0].siblings)allA[0].siblings=[];
+  var adding=allA[0].siblings.indexOf(sibNo)<0;
+  // 같은 번호의 모든 항목(타자+투수)에 동일하게 적용
+  allA.forEach(function(p){
+    if(!p.siblings)p.siblings=[];
+    var i=p.siblings.indexOf(sibNo);
+    if(adding&&i<0)p.siblings.push(sibNo);
+    else if(!adding&&i>=0)p.siblings.splice(i,1);
+  });
+  allB.forEach(function(p){
+    if(!p.siblings)p.siblings=[];
+    var i=p.siblings.indexOf(no);
+    if(adding&&i<0)p.siblings.push(no);
+    else if(!adding&&i>=0)p.siblings.splice(i,1);
+  });
+  S.rosterDirty=true;save();
+  var modal=ROSTER.find(function(x){return x.no===no;});
+  showEditPlayerModal(no,modal?modal.r:'b');
 }
 function showEditPlayerModal(no,role){
   const p=ROSTER.find(x=>x.no===no&&x.r===role);if(!p)return;
