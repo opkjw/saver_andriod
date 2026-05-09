@@ -270,7 +270,7 @@ let S={
   // 기록
   logGameId:null,calMonth:null,myPlayer:null,
   // 설정
-  rosterSub:0,schoolName:"",role:null,setupStep:0,setupDone:false,showPlayerSel:false,
+  rosterSub:0,schoolName:"",role:null,setupStep:0,setupDone:false,showPlayerSel:false,activeChild:null,
   // 데이터
   game:null,gcnt:1,games:[],
   blog:[],pit_bf:[],pit_runs:[],
@@ -307,6 +307,13 @@ function save(){
   }catch(e){console.error(e);}
 }
 
+function getSiblingGroup(){
+  if(!S.myPlayer)return[];
+  var me=ROSTER.find(function(x){return x.no===S.myPlayer;});
+  if(!me||!me.siblings||!me.siblings.length)return[];
+  return me.siblings.map(function(sno){return ROSTER.find(function(x){return x.no===sno;});}).filter(Boolean);
+}
+function activeNo(){return S.activeChild!=null?S.activeChild:S.myPlayer;}
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function toast(m,type=''){
@@ -667,10 +674,28 @@ function renderTabs(){
 }
 function renderCt(){
   const el=document.getElementById('ct');
+  var sibHtml='';
+  if(S.role==='user'&&S.myPlayer&&(S.tab===2||S.tab===3)){
+    var me=ROSTER.find(function(x){return x.no===S.myPlayer;});
+    var sibs=getSiblingGroup();
+    if(sibs.length){
+      var curNo=activeNo();
+      var allPlayers=[{no:S.myPlayer,name:(me||{}).name||''}].concat(sibs.map(function(p){return{no:p.no,name:p.name};}));
+      sibHtml='<div style="display:flex;background:var(--card);border-bottom:2px solid var(--bdr);overflow-x:auto">'
+        +allPlayers.map(function(p){
+          var sel=p.no===curNo;
+          return '<button onclick="S.activeChild='+p.no+';renderCt()" style="flex:1;min-width:80px;padding:12px 4px 10px;background:none;border:none;border-bottom:'+(sel?'3px solid var(--navy)':'3px solid transparent')+';color:'+(sel?'var(--navy)':'var(--txt)')+';font-weight:'+(sel?'700':'400')+';cursor:pointer;font-family:inherit;margin-bottom:-2px">'
+            +'<div style="font-size:17px;font-weight:700">#'+p.no+'</div>'
+            +'<div style="font-size:12px">'+esc(p.name)+'</div>'
+            +'</button>';
+        }).join('')
+        +'</div>';
+    }
+  }
   if(S.tab===0)el.innerHTML=rBatTab();
   else if(S.tab===1)el.innerHTML=rPitTab();
-  else if(S.tab===2)el.innerHTML=rLog();
-  else if(S.tab===3)el.innerHTML=rStats();
+  else if(S.tab===2)el.innerHTML=sibHtml+rLog();
+  else if(S.tab===3)el.innerHTML=sibHtml+rStats();
   else el.innerHTML=rSettings();
 }
 function r(){renderSetup();renderPlayerSel();renderLogin();renderGHdr();renderTabs();renderCt();}
@@ -924,11 +949,12 @@ function rLog(){
       h+='</div>';
 
       // 대표 선수 기록
-      if(S.myPlayer){
-        var mp=ROSTER.find(function(x){return x.no===S.myPlayer;});
+      var _an=activeNo();
+      if(_an){
+        var mp=ROSTER.find(function(x){return x.no===_an;});
         if(mp){
-          var mpBat=S.blog.filter(function(e){return e.gid===selGid&&e.pno===S.myPlayer;});
-          var mpPit=S.pit_bf.filter(function(e){return e.gid===selGid&&e.pno===S.myPlayer;});
+          var mpBat=S.blog.filter(function(e){return e.gid===selGid&&e.pno===_an;});
+          var mpPit=S.pit_bf.filter(function(e){return e.gid===selGid&&e.pno===_an;});
           h+='<div class="cal-sum-player">#'+mp.no+' '+mp.name+'</div>';
           if(mpBat.length){
             var bAB=0,bH=0,bRBI=0;
@@ -936,7 +962,7 @@ function rLog(){
             h+='<div class="cal-sum-stat">타격 · '+bAB+'타수 '+bH+'안타'+(bRBI?' · '+bRBI+'타점':'')+'</div>';
           }
           if(mpPit.length){
-            var ps=calcPitStats(S.myPlayer,selGid);
+            var ps=calcPitStats(_an,selGid);
             h+='<div class="cal-sum-stat">투수 · '+ps.ipd+'이닝'+(ps.r?' · '+ps.r+'실점 (자책 '+ps.er+')':'')+'</div>';
           }
           if(!mpBat.length&&!mpPit.length)
@@ -1051,8 +1077,8 @@ function rLogMonthly(allGames,calMon,calY,calM){
   let h='';
 
   // 대표 선수 이번달 vs 지난달 주요 타격 지표 3가지
-  if(S.myPlayer){
-    const myNo=Number(S.myPlayer);
+  if(activeNo()){
+    const myNo=Number(activeNo());
     const curGids=new Set(monGames.map(g=>g.id));
     const prevGids=new Set(prevGames.map(g=>g.id));
     const curBlog=S.blog.filter(e=>curGids.has(e.gid)&&Number(e.pno)===myNo);
@@ -1113,8 +1139,8 @@ function rLogMonthly(allGames,calMon,calY,calM){
     h+='vs '+esc(g.opp);
     h+=' <span style="background:'+(isOff?'#EBF0FB':'#dcfce7')+';color:'+(isOff?'var(--navy)':'#15803d')+';border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600">'+(isOff?'정식':'연습')+'</span>';
     h+='</div>';
-    if(S.myPlayer){
-      var myNo2=Number(S.myPlayer);
+    if(activeNo()){
+      var myNo2=Number(activeNo());
       var mpBat2=S.blog.filter(function(e){return e.gid===g.id&&Number(e.pno)===myNo2;});
       var mpPit2=S.pit_bf.filter(function(e){return e.gid===g.id&&Number(e.pno)===myNo2;});
       var parts=[];
@@ -1196,7 +1222,7 @@ function rStats(){
   const totalG=S.games.length;
   const offG=S.games.filter(g=>(g.type||'O')==='O').length;
   const praG=S.games.filter(g=>g.type==='P').length;
-  const myNo=S.myPlayer?Number(S.myPlayer):null;
+  const myNo=activeNo()!=null?Number(activeNo()):null;
   const isAdmin=S.role==='admin'||!S.role;
   const showAll=isAdmin?(S.statsShowAll||!myNo):false;
   const myBatSt=myNo?bs.find(s=>Number(s.no)===myNo):null;
@@ -1675,15 +1701,41 @@ function confirmEditEntry(){
 }
 
 // ── 선수 관리 ─────────────────────────────────────────────
+function toggleSibling(no,sibNo){
+  var a=ROSTER.find(function(x){return x.no===no;});
+  var b=ROSTER.find(function(x){return x.no===sibNo;});
+  if(!a||!b)return;
+  if(!a.siblings)a.siblings=[];
+  if(!b.siblings)b.siblings=[];
+  var ai=a.siblings.indexOf(sibNo);
+  var bi=b.siblings.indexOf(no);
+  if(ai>=0){a.siblings.splice(ai,1);}else{a.siblings.push(sibNo);}
+  if(bi>=0){b.siblings.splice(bi,1);}else{b.siblings.push(no);}
+  S.rosterDirty=true;save();showEditPlayerModal(no,ROSTER.find(function(x){return x.no===no;}).r);
+}
 function showEditPlayerModal(no,role){
   const p=ROSTER.find(x=>x.no===no&&x.r===role);if(!p)return;
+  const sibs=p.siblings||[];
+  const others=ROSTER.filter(function(x){return x.no!==no;});
+  var sibSection='<div class="mlbl" style="margin-top:12px">형제 연결 <span style="font-weight:400;font-size:11px;color:var(--txt2)">(같은 팀 형제 선택)</span></div>';
+  if(others.length){
+    sibSection+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+    others.forEach(function(x){
+      var linked=sibs.indexOf(x.no)>=0;
+      sibSection+='<button onclick="toggleSibling('+no+','+x.no+')" style="padding:9px 12px;border-radius:20px;border:none;background:'+(linked?'var(--navy)':'#e5e7eb')+';color:'+(linked?'#fff':'var(--txt)')+';font-size:12px;font-weight:'+(linked?'700':'400')+';cursor:pointer;font-family:inherit">'+(linked?'✓ ':'')+'#'+x.no+' '+esc(x.name)+'</button>';
+    });
+    sibSection+='</div>';
+  }else{
+    sibSection+='<div style="font-size:12px;color:var(--txt2);padding:4px 0">다른 선수가 없습니다.</div>';
+  }
   document.getElementById('modal-root').innerHTML=
     '<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">'
     +'<h3>선수 편집</h3>'
     +'<div class="mlbl">등번호</div><input type="number" id="ep-no" min="0" max="99" value="'+p.no+'">'
     +'<div class="mlbl">이름</div><input type="text" id="ep-name" value="'+esc(p.name)+'" maxlength="10">'
     +'<div class="mlbl">포지션</div><input type="text" id="ep-pos" value="'+esc(p.pos)+'" maxlength="5" placeholder="'+(role==='b'?'1B, SS, LF 등':'P')+'">'
-    +'<div class="mbtns">'
+    +sibSection
+    +'<div class="mbtns" style="margin-top:14px">'
     +'<button class="mcancel" onclick="deletePlayer('+no+',&apos;'+role+'&apos;)" style="background:#FDEDEC;color:var(--red);border-color:#F5B7B1;flex:1">삭제</button>'
     +'<button class="mok" onclick="confirmEditPlayer('+no+',&apos;'+role+'&apos;)" style="flex:2">저장</button>'
     +'</div></div></div>';
