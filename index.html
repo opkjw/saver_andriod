@@ -606,7 +606,8 @@ function renderPlayerSel(){
   if(!ol)return;
   if(!S.setupDone)return;
   var needSel=S.role==='user'&&(S.myPlayer==null||S.showPlayerSel);
-  if(!needSel){return;}
+  if(!needSel){if(ol.style.display==='flex')ol.style.display='none';return;}
+  S.showPlayerSel=true;
   ol.style.display='flex';
   var uniquePlayers=[...new Map(ROSTER.map(function(p){return[p.no,p];})).values()];
   var rosterHtml='';
