@@ -2059,7 +2059,7 @@ function pitConfirmRun(earned){
   var p=ROSTER.find(function(x){return x.no===S.curPit;});
   if(p){S.pit_runs.push({id:UID(),gid:S.game.id,pno:p.no,pn:p.name,earned:earned});save();}
   toast((earned?'자책점':'비자책점')+' 기록','ok');
-  closeModal();renderCt();
+  closeModal();renderGHdr();renderCt();
 }
 function pitRunnerSteal(base){
   if(!S.pitBases||!S.pitBases[base])return;
