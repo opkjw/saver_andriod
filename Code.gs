@@ -34,6 +34,99 @@ function checkAuth(token) {
   return token === AUTH_TOKEN;
 }
 
+// ── 검증 한도 ──────────────────────────────────────────────
+const VAL_LIMITS = {
+  maxRowsPerSheet: 5000,
+  maxStrLen:       500,
+  maxDeletedGids:  100,
+  maxRosterSize:   200
+};
+
+// ── OC 코드 화이트리스트 (타자/투수 결과) ─────────────────
+const VALID_OC = {
+  bat: ['1B','2B','3B','HR','BB','IBB','HBP','K','KL','GO','FO','LO','PO','DP','SF','SH','E','FC','_RUN','BIP_OC'],
+  pit: ['1B','2B','3B','HR','BB','IBB','HBP','K','KL','GO','FO','LO','PO','DP','SF','SH','E','FC','BK','WP']
+};
+
+// ── 시트별 검증 스키마 ────────────────────────────────────
+// type: 's'=string, 'n'=number, 'b'=boolean, 'd'=date(YYYY-MM-DD), 'oc_bat'/'oc_pit'=OC코드
+function getSchema(name) {
+  if (name === 'games')    return { req: ['id'], fields: { id:'s', date:'d', opp:'s', type:'s', our:'n', opp_:'n', notes:'s', lastSync:'s' } };
+  if (name === 'bat_log')  return { req: ['id','gid'], fields: { id:'s', gid:'s', date:'d', opp:'s', pno:'n', pn:'s', oc:'oc_bat', rbi:'n', run:'n', sb:'n', cs:'n', zone:'s', dir:'s' } };
+  if (name === 'pit_bf')   return { req: ['id','gid'], fields: { id:'s', gid:'s', date:'d', opp:'s', pno:'n', pn:'s', oc:'oc_pit' } };
+  if (name === 'pit_runs') return { req: ['id','gid'], fields: { id:'s', gid:'s', date:'d', opp:'s', pno:'n', pn:'s', earned:'b' } };
+  return null;
+}
+
+// ── 단일 값 검증/정규화 (반환: 정규화된 값 또는 SKIP_VALUE) ─
+const SKIP_VALUE = Symbol ? Symbol('skip') : '__SKIP__';
+function sanitizeValue(v, type) {
+  if (v === null || v === undefined || v === '') return null;
+  if (type === 's') {
+    var s = String(v);
+    if (s.length > VAL_LIMITS.maxStrLen) s = s.slice(0, VAL_LIMITS.maxStrLen);
+    return s;
+  }
+  if (type === 'n') {
+    var n = Number(v);
+    if (!isFinite(n)) return null;
+    return n;
+  }
+  if (type === 'b') return !!v;
+  if (type === 'd') {
+    var ds = String(v).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return null;
+    return ds;
+  }
+  if (type === 'oc_bat') {
+    var oc = String(v);
+    return VALID_OC.bat.indexOf(oc) >= 0 ? oc : null;
+  }
+  if (type === 'oc_pit') {
+    var op = String(v);
+    return VALID_OC.pit.indexOf(op) >= 0 ? op : null;
+  }
+  return null;
+}
+
+// ── 행 검증: 유효하면 정규화 객체, 무효하면 null ───────────
+function sanitizeRow(item, schema) {
+  if (!item || typeof item !== 'object') return null;
+  // 필수 필드 검사
+  for (var i = 0; i < schema.req.length; i++) {
+    var k = schema.req[i];
+    if (item[k] === undefined || item[k] === null || item[k] === '') return null;
+  }
+  // 화이트리스트 필드만 통과
+  var out = {};
+  var keys = Object.keys(schema.fields);
+  for (var j = 0; j < keys.length; j++) {
+    var key = keys[j];
+    if (!(key in item)) continue;
+    var sanitized = sanitizeValue(item[key], schema.fields[key]);
+    if (sanitized !== null) out[key] = sanitized;
+  }
+  // id는 필수이므로 정규화 후에도 살아있어야 함
+  if (schema.req.indexOf('id') >= 0 && !out.id) return null;
+  return out;
+}
+
+// ── 배열 검증: { valid: [...], skipped: N } ───────────────
+function sanitizeRows(items, sheetName) {
+  if (!Array.isArray(items)) return { valid: [], skipped: 0 };
+  var schema = getSchema(sheetName);
+  if (!schema) return { valid: [], skipped: items.length };
+  var capped = items.slice(0, VAL_LIMITS.maxRowsPerSheet);
+  var skipped = items.length - capped.length;
+  var valid = [];
+  for (var i = 0; i < capped.length; i++) {
+    var row = sanitizeRow(capped[i], schema);
+    if (row) valid.push(row);
+    else skipped++;
+  }
+  return { valid: valid, skipped: skipped };
+}
+
 // ── 유틸: 시트 가져오기 (없으면 생성) ─────────────────────
 function getSheet(name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -154,18 +247,32 @@ function doPost(e) {
       return out({ status: 'error', message: '인증 실패: 올바른 토큰이 필요합니다.' });
     }
     if (data.type === 'sync') {
-      // 삭제 먼저 처리 (새 데이터 upsert 전에)
-      const delGids = data.deleted_gids || [];
+      // 삭제 처리 (새 데이터 upsert 전에) — 한도 적용 + 문자열 변환
+      var rawDel = Array.isArray(data.deleted_gids) ? data.deleted_gids : [];
+      var delGids = rawDel.slice(0, VAL_LIMITS.maxDeletedGids)
+                          .map(function(g){ return String(g); })
+                          .filter(function(g){ return g && g.length <= VAL_LIMITS.maxStrLen; });
+      var delSkipped = rawDel.length - delGids.length;
       if (delGids.length) {
         deleteByGid(SHEETS.games,    delGids);
         deleteByGid(SHEETS.bat_log,  delGids);
         deleteByGid(SHEETS.pit_bf,   delGids);
         deleteByGid(SHEETS.pit_runs, delGids);
       }
-      upsertRows(SHEETS.games,    data.games    || []);
-      upsertRows(SHEETS.bat_log,  data.bat_log  || []);
-      upsertRows(SHEETS.pit_bf,   data.pit_bf   || []);
-      upsertRows(SHEETS.pit_runs, data.pit_runs || []);
+      // 시트별 행 검증 후 upsert
+      var vGames = sanitizeRows(data.games,    SHEETS.games);
+      var vBat   = sanitizeRows(data.bat_log,  SHEETS.bat_log);
+      var vPbf   = sanitizeRows(data.pit_bf,   SHEETS.pit_bf);
+      var vPrun  = sanitizeRows(data.pit_runs, SHEETS.pit_runs);
+      upsertRows(SHEETS.games,    vGames.valid);
+      upsertRows(SHEETS.bat_log,  vBat.valid);
+      upsertRows(SHEETS.pit_bf,   vPbf.valid);
+      upsertRows(SHEETS.pit_runs, vPrun.valid);
+      return out({
+        status: 'ok',
+        accepted: { games: vGames.valid.length, bat_log: vBat.valid.length, pit_bf: vPbf.valid.length, pit_runs: vPrun.valid.length, deleted_gids: delGids.length },
+        skipped:  { games: vGames.skipped,     bat_log: vBat.skipped,     pit_bf: vPbf.skipped,     pit_runs: vPrun.skipped,     deleted_gids: delSkipped }
+      });
     }
     return out({ status: 'ok' });
   } catch (err) {
@@ -192,7 +299,24 @@ function doGet(e) {
 
     // 선수 명단 저장
     if (action === 'saveRoster') {
-      const roster = JSON.parse(decodeURIComponent(e.parameter.data));
+      var raw = JSON.parse(decodeURIComponent(e.parameter.data));
+      if (!Array.isArray(raw)) {
+        return out({ status: 'error', message: '선수 명단 형식이 올바르지 않습니다.' });
+      }
+      // 사이즈 한도 + 기본 검증 (각 항목은 객체이고 no 필드 필수)
+      var rosterSkipped = Math.max(0, raw.length - VAL_LIMITS.maxRosterSize);
+      const roster = raw.slice(0, VAL_LIMITS.maxRosterSize).filter(function(p){
+        return p && typeof p === 'object' && (p.no !== undefined && p.no !== null && p.no !== '');
+      });
+      rosterSkipped += (Math.min(raw.length, VAL_LIMITS.maxRosterSize) - roster.length);
+      // 문자열 필드 길이 제한
+      roster.forEach(function(p){
+        Object.keys(p).forEach(function(k){
+          if (typeof p[k] === 'string' && p[k].length > VAL_LIMITS.maxStrLen) {
+            p[k] = p[k].slice(0, VAL_LIMITS.maxStrLen);
+          }
+        });
+      });
       const sh = getSheet(SHEETS.roster);
       sh.clearContents();
       if (roster.length) {
@@ -210,7 +334,7 @@ function doGet(e) {
         });
         sh.getRange(2, 1, rows.length, hdrs.length).setValues(rows);
       }
-      return out({ status: 'ok' });
+      return out({ status: 'ok', accepted: roster.length, skipped: rosterSkipped });
     }
 
     // 전체 데이터 불러오기
