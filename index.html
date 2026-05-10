@@ -891,15 +891,34 @@ function rExtras(){
   const isBIP=BIP_OC.includes(S.bo);
   const zoneOF=['LF','LC','CF','RC','RF'];
   const zoneIF=['3B','SS','2B','1B'];
-  let h='<div class="shdr"><button class="back" onclick="S.bs=(S.pendingScores&&S.pendingScores.length>0||Object.keys(S.runnerDecisions||{}).length>0)?2:1;r()">←</button>'
+  let h='<div class="shdr"><button class="back" onclick="undoRunnerAdv();S.bs=1;S.runnerDecisions={};S.pendingScores=[];r()">←</button>'
     +'<div style="flex:1"><div class="s-title">'+esc(p.name)+'</div><div class="s-sub">추가 기록 입력</div></div>'
     +'<span class="badge" style="background:'+oc.bg+';color:'+oc.fg+'">'+oc.l+'</span></div>'
-    +'<div class="callout">폭투·보크 등 득점은 <strong>베이스 현황</strong>의 <strong>홈인🏠</strong> 버튼으로 처리하세요.</div>'
-    +'<div class="extras" style="grid-template-columns:'+(showRbi?'repeat(3,1fr)':'repeat(2,1fr)')+'">';
-  if(showRbi)h+='<div class="excard"><div class="exlbl">타점 (RBI)</div><div class="exval" id="ev-brbi">'+S.brbi+'</div><div class="exbtns"><button class="exbtn" onclick="adj(\'brbi\',-1)">−</button><button class="exbtn" onclick="adj(\'brbi\',1)">+</button></div></div>';
-  h+='<div class="excard"><div class="exlbl">도루 (SB)</div><div class="exval" id="ev-bsb">'+S.bsb+'</div><div class="exbtns"><button class="exbtn" onclick="adj(\'bsb\',-1)">−</button><button class="exbtn" onclick="adj(\'bsb\',1)">+</button></div></div>';
-  h+='<div class="excard"><div class="exlbl">도루실패 (CS)</div><div class="exval" id="ev-bcs">'+S.bcs+'</div><div class="exbtns"><button class="exbtn" onclick="adj(\'bcs\',-1)">−</button><button class="exbtn" onclick="adj(\'bcs\',1)">+</button></div></div>';
-  h+='</div>';
+    +'<div class="callout">도루·도루실패는 <strong>베이스 현황</strong> 버튼으로, 폭투·보크 득점은 <strong>홈인🏠</strong>으로 처리하세요.</div>';
+  if(showRbi){
+    h+='<div style="margin:0 12px 10px;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 16px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div style="font-size:13px;font-weight:700;color:var(--txt)">타점 (RBI)</div>'
+      +'<div style="font-size:11px;color:var(--txt2);margin-top:3px">득점 확인 기준으로 자동 계산됩니다</div></div>'
+      +'<div style="display:flex;align-items:center;gap:14px">'
+      +'<button class="exbtn" onclick="adj(\'brbi\',-1)">−</button>'
+      +'<span id="ev-brbi" style="font-size:32px;font-weight:700;color:var(--navy);min-width:36px;text-align:center">'+S.brbi+'</span>'
+      +'<button class="exbtn" onclick="adj(\'brbi\',1)">+</button>'
+      +'</div></div></div>';
+  }
+  h+='<div style="margin:0 12px 10px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 14px">'
+    +'<div style="font-size:11px;color:var(--txt2);margin-bottom:8px;font-weight:600">⚾ 도루 수동 보정 <span style="font-weight:400">(베이스 현황 미사용 시)</span></div>'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<span style="font-size:12px;color:var(--txt2);flex:1">도루 (SB)</span>'
+    +'<button class="exbtn" style="width:36px;height:36px" onclick="adj(\'bsb\',-1)">−</button>'
+    +'<span id="ev-bsb" style="font-size:18px;font-weight:700;color:var(--txt);min-width:24px;text-align:center">'+S.bsb+'</span>'
+    +'<button class="exbtn" style="width:36px;height:36px" onclick="adj(\'bsb\',1)">+</button>'
+    +'<span style="width:1px;height:20px;background:var(--bdr);margin:0 4px"></span>'
+    +'<span style="font-size:12px;color:var(--txt2);flex:1">도루실패 (CS)</span>'
+    +'<button class="exbtn" style="width:36px;height:36px" onclick="adj(\'bcs\',-1)">−</button>'
+    +'<span id="ev-bcs" style="font-size:18px;font-weight:700;color:var(--txt);min-width:24px;text-align:center">'+S.bcs+'</span>'
+    +'<button class="exbtn" style="width:36px;height:36px" onclick="adj(\'bcs\',1)">+</button>'
+    +'</div></div>';
   if(isBIP){
     h+='<div style="padding:4px 12px 8px">'
       +'<div style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:6px">🎯 타구 방향 <span style="font-weight:400">(선택사항)</span></div>'
@@ -1879,7 +1898,7 @@ function rRunConfirm(){
   var batter=ROSTER.find(function(x){return x.no===S.bp;})||{name:'타자',no:S.bp};
   var oc=ocInfo(S.bo);
   var pending=S.pendingScores&&S.pendingScores[0];
-  if(!pending){S.bs=3;r();return'';}
+  if(!pending){S.bs=3;return rExtras();}
   var pno=pending.pno;
   var from=pending.from;
   var runner=ROSTER.find(function(x){return Number(x.no)===Number(pno);})||{name:'주자',no:pno};
@@ -2172,7 +2191,7 @@ function scoreRunnerBase(pno){
   if(!S.game||pno==null)return;
   var ents=S.blog.filter(function(e){return e.gid===S.game.id&&Number(e.pno)===Number(pno);});
   if(ents.length){ents[ents.length-1].run=(ents[ents.length-1].run||0)+1;}
-  else{var p=ROSTER.find(function(x){return Number(x.no)===Number(pno);});if(p)S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:p.no,pn:p.name,oc:'_RUN',rbi:0,run:1,sb:0,cs:0});}
+  else{var p=ROSTER.find(function(x){return Number(x.no)===Number(pno);});S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,pno:pno,pn:p?p.name:'#'+pno,oc:'_RUN',rbi:0,run:1,sb:0,cs:0});}
 }
 function calcAutoRBI(oc){
   var b=S.bases;
