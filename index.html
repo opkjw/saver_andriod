@@ -1887,7 +1887,7 @@ function rRunConfirm(){
   var noLabel,noDesc,yesLabel,yesDesc;
   if(from==='b3'){noLabel='3루 머묾';noDesc='진루 안 함';yesLabel='홈 득점!';yesDesc='+1 득점 +1 타점';}
   else{noLabel='3루 진루';noDesc='득점 안 함';yesLabel='홈 득점!';yesDesc='+1 득점 +1 타점';}
-  var h='<div class="shdr"><button class="back" onclick="S.bs=1;S.pendingScores=[];S.runnerDecisions={};r()">←</button>'
+  var h='<div class="shdr"><button class="back" onclick="undoRunnerAdv();S.bs=1;S.pendingScores=[];S.runnerDecisions={};r()">←</button>'
     +'<div><div class="s-title">'+esc(batter.name)+' <span class="badge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700">'+oc.l+'</span></div>'
     +'<div class="s-sub">진루 확인 ('+(S.pendingScores.length)+'명 남음)</div></div></div>';
   h+='<div style="margin:12px;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden">';
@@ -1911,9 +1911,23 @@ function rRunConfirm(){
   h+=rBaseDiagram();
   return h;
 }
+function undoRunnerAdv(){
+  if(!S.runnerDecisions||!S.game)return;
+  for(var k in S.runnerDecisions){
+    if(S.runnerDecisions[k]==='scored'){
+      var ents=S.blog.filter(function(e){return e.gid===S.game.id&&Number(e.pno)===Number(k);});
+      if(ents.length)ents[ents.length-1].run=Math.max(0,(ents[ents.length-1].run||0)-1);
+    }
+  }
+}
 function confirmRunnerAdv(pno,scored){
-  S.runnerDecisions[pno]=scored;
-  if(scored)S.brbi++;
+  if(scored){
+    scoreRunnerBase(pno);
+    S.runnerDecisions[pno]='scored';
+    S.brbi++;
+  }else{
+    S.runnerDecisions[pno]=false;
+  }
   S.pendingScores=S.pendingScores.slice(1);
   if(S.pendingScores.length>0){r();}
   else{S.bs=3;r();}
@@ -2177,22 +2191,22 @@ function applyBaseAdvancement(oc,pno){
     if(b.b1!=null)scoreRunnerBase(b.b1);if(b.b2!=null)scoreRunnerBase(b.b2);if(b.b3!=null)scoreRunnerBase(b.b3);
     S.bases={b1:null,b2:null,b3:pno};
   }else if(oc==='2B'){
-    var b3sc2=b.b3!=null&&S.runnerDecisions&&S.runnerDecisions[b.b3]===true;
-    var b2sc2=b.b2!=null&&S.runnerDecisions&&S.runnerDecisions[b.b2]===true;
-    var b1sc2=b.b1!=null&&S.runnerDecisions&&S.runnerDecisions[b.b1]===true;
-    if(b3sc2)scoreRunnerBase(b.b3);
-    if(b2sc2)scoreRunnerBase(b.b2);
-    if(b1sc2)scoreRunnerBase(b.b1);
+    var b3sc2=b.b3!=null&&S.runnerDecisions&&S.runnerDecisions[b.b3];
+    var b2sc2=b.b2!=null&&S.runnerDecisions&&S.runnerDecisions[b.b2];
+    var b1sc2=b.b1!=null&&S.runnerDecisions&&S.runnerDecisions[b.b1];
+    if(b3sc2&&S.runnerDecisions[b.b3]!=='scored')scoreRunnerBase(b.b3);
+    if(b2sc2&&S.runnerDecisions[b.b2]!=='scored')scoreRunnerBase(b.b2);
+    if(b1sc2&&S.runnerDecisions[b.b1]!=='scored')scoreRunnerBase(b.b1);
     var nb3_2=null;
     if(b.b3!=null&&!b3sc2)nb3_2=b.b3;
     else if(b.b2!=null&&!b2sc2)nb3_2=b.b2;
     else if(b.b1!=null&&!b1sc2)nb3_2=b.b1;
     S.bases={b1:null,b2:pno,b3:nb3_2};
   }else if(oc==='1B'){
-    var b3sc1=b.b3!=null&&S.runnerDecisions&&S.runnerDecisions[b.b3]===true;
-    var b2sc1=b.b2!=null&&S.runnerDecisions&&S.runnerDecisions[b.b2]===true;
-    if(b3sc1)scoreRunnerBase(b.b3);
-    if(b2sc1)scoreRunnerBase(b.b2);
+    var b3sc1=b.b3!=null&&S.runnerDecisions&&S.runnerDecisions[b.b3];
+    var b2sc1=b.b2!=null&&S.runnerDecisions&&S.runnerDecisions[b.b2];
+    if(b3sc1&&S.runnerDecisions[b.b3]!=='scored')scoreRunnerBase(b.b3);
+    if(b2sc1&&S.runnerDecisions[b.b2]!=='scored')scoreRunnerBase(b.b2);
     var nb3_1=null,nb2_1=null;
     if(b.b3!=null&&!b3sc1){
       nb3_1=b.b3;
