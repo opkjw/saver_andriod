@@ -2925,17 +2925,29 @@ async function fetchGamesOnly(){
     const res=await fetch(S.scriptUrl+'?action=fetchGames'+(S.scriptToken?'&token='+encodeURIComponent(S.scriptToken):''));
     const data=await res.json();
     if(data.status!=='ok')return{ok:false,reason:data.message||'서버 오류'};
+    const tombF=new Set(data.tombstone_gids||[]);
+    // tombstone 적용: 로컬의 삭제된 경기 데이터 정리
+    var tombApplied=0;
+    if(tombF.size){
+      const before=S.games.length+S.blog.length+S.pit_bf.length+S.pit_runs.length;
+      S.games=S.games.filter(function(g){return !tombF.has(g.id);});
+      S.blog=S.blog.filter(function(e){return !tombF.has(e.gid);});
+      S.pit_bf=S.pit_bf.filter(function(e){return !tombF.has(e.gid);});
+      S.pit_runs=S.pit_runs.filter(function(e){return !tombF.has(e.gid);});
+      S.deletedGids=(S.deletedGids||[]).filter(function(gid){return !tombF.has(gid);});
+      tombApplied=before-(S.games.length+S.blog.length+S.pit_bf.length+S.pit_runs.length);
+    }
     const localIds=new Set(S.games.map(function(g){return g.id;}));
     const localDel=new Set(S.deletedGids||[]);
     var added=0;
     (data.games||[]).forEach(function(g){
-      if(!localIds.has(g.id)&&!localDel.has(g.id)){
+      if(!localIds.has(g.id)&&!localDel.has(g.id)&&!tombF.has(g.id)){
         S.games.push(g);
         S.syncedIds.add('g_'+g.id);
         added++;
       }
     });
-    if(added)save();
+    if(added||tombApplied)save();
     return{ok:true,added:added};
   }catch(e){console.error('fetchGamesOnly',e);return{ok:false,reason:e.message};}
 }
@@ -2968,6 +2980,15 @@ async function doSync(){
         body:JSON.stringify({type:'sync',token:S.scriptToken||'',games:gP,bat_log:bP,pit_bf:pfP,pit_runs:prP,deleted_gids:dG})});
       const data=await res.json();
       if(data.status!=='ok')throw new Error(data.message||'서버 오류');
+      // tombstone 적용: 서버에서 삭제된 경기의 로컬 데이터 정리
+      const tomb=new Set(data.tombstone_gids||[]);
+      if(tomb.size){
+        S.games=S.games.filter(g=>!tomb.has(g.id));
+        S.blog=S.blog.filter(e=>!tomb.has(e.gid));
+        S.pit_bf=S.pit_bf.filter(e=>!tomb.has(e.gid));
+        S.pit_runs=S.pit_runs.filter(e=>!tomb.has(e.gid));
+        S.deletedGids=(S.deletedGids||[]).filter(gid=>!tomb.has(gid));
+      }
       bP.forEach(e=>S.syncedIds.add(e.id));
       pfP.forEach(e=>S.syncedIds.add(e.id));
       prP.forEach(e=>S.syncedIds.add(e.id));
@@ -3006,12 +3027,13 @@ async function loadFromSheets(){
     const svrBlogIds=new Set((data.bat_log||[]).map(e=>e.id));
     const svrPitBfIds=new Set((data.pit_bf||[]).map(e=>e.id));
     const svrPitRunIds=new Set((data.pit_runs||[]).map(e=>e.id));
+    const tombSet=new Set(data.tombstone_gids||[]);
 
-    // 서버 데이터 + 로컬 미동기화 항목 병합 (서버에 이미 있는 건 제외)
-    S.games=[...(data.games||[]),...unsyncedGames.filter(g=>!svrGameIds.has(g.id))];
-    S.blog=[...(data.bat_log||[]),...unsyncedBlog.filter(e=>!svrBlogIds.has(e.id))];
-    S.pit_bf=[...(data.pit_bf||[]),...unsyncedPitBf.filter(e=>!svrPitBfIds.has(e.id))];
-    S.pit_runs=[...(data.pit_runs||[]),...unsyncedPitRuns.filter(e=>!svrPitRunIds.has(e.id))];
+    // 서버 데이터 + 로컬 미동기화 항목 병합 (서버에 이미 있는 건 제외, tombstone된 gid 제외)
+    S.games=[...(data.games||[]),...unsyncedGames.filter(g=>!svrGameIds.has(g.id)&&!tombSet.has(g.id))];
+    S.blog=[...(data.bat_log||[]),...unsyncedBlog.filter(e=>!svrBlogIds.has(e.id)&&!tombSet.has(e.gid))];
+    S.pit_bf=[...(data.pit_bf||[]),...unsyncedPitBf.filter(e=>!svrPitBfIds.has(e.id)&&!tombSet.has(e.gid))];
+    S.pit_runs=[...(data.pit_runs||[]),...unsyncedPitRuns.filter(e=>!svrPitRunIds.has(e.id)&&!tombSet.has(e.gid))];
 
     if(data.roster&&data.roster.length>0){parseRosterSiblings(data.roster);ROSTER.splice(0,ROSTER.length,...data.roster);S.rosterDirty=false;}
 
@@ -3022,8 +3044,8 @@ async function loadFromSheets(){
     (data.pit_bf||[]).forEach(e=>S.syncedIds.add(e.id));
     (data.pit_runs||[]).forEach(e=>S.syncedIds.add(e.id));
 
-    // 서버에서 삭제된 gid는 로컬 deletedGids에서도 제거 (이미 반영됨)
-    S.deletedGids=(S.deletedGids||[]).filter(gid=>svrGameIds.has(gid));
+    // tombstone에 있는 gid는 deletedGids에서도 제거 (이미 영구 삭제됨)
+    S.deletedGids=(S.deletedGids||[]).filter(gid=>svrGameIds.has(gid)&&!tombSet.has(gid));
 
     save();
     const svrTotal=(data.games||[]).length+(data.bat_log||[]).length+(data.pit_bf||[]).length+(data.pit_runs||[]).length;

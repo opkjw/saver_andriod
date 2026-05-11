@@ -25,7 +25,8 @@ const SHEETS = {
   pit_bf:   'pit_bf',
   pit_runs: 'pit_runs',
   roster:   'roster',
-  teams:    'teams'   // 팀명 목록 시트 (헤더: name)
+  teams:        'teams',         // 팀명 목록 시트 (헤더: name)
+  deleted_gids: 'deleted_gids'  // tombstone: 삭제된 경기 gid 영구 목록
 };
 
 // ── 유틸: 토큰 인증 검사 ───────────────────────────────────
@@ -239,6 +240,32 @@ function deleteByGid(sheetName, gids) {
   }
 }
 
+// ── 유틸: tombstone — 삭제된 gid 영구 기록 ────────────────
+function readTombstoneGids() {
+  const sh = getSheet(SHEETS.deleted_gids);
+  const vals = sh.getDataRange().getValues();
+  if (vals.length < 2 || !vals[0][0]) return [];
+  return vals.slice(1)
+    .map(function(r) { return String(r[0]); })
+    .filter(function(v) { return v && v.trim(); });
+}
+
+function addTombstones(gids) {
+  if (!gids || !gids.length) return;
+  const sh = getSheet(SHEETS.deleted_gids);
+  const allVals = sh.getDataRange().getValues();
+  if (allVals.length < 1 || !allVals[0][0]) {
+    sh.getRange(1, 1).setValue('gid');
+  }
+  const existingSet = new Set(
+    allVals.length > 1 ? allVals.slice(1).map(function(r) { return String(r[0]); }) : []
+  );
+  const newGids = gids.filter(function(g) { return g && !existingSet.has(g); });
+  if (!newGids.length) return;
+  const lastRow = sh.getLastRow();
+  sh.getRange(lastRow + 1, 1, newGids.length, 1).setValues(newGids.map(function(g) { return [g]; }));
+}
+
 // ── POST 핸들러: 기록 동기화 ───────────────────────────────
 function doPost(e) {
   try {
@@ -258,20 +285,29 @@ function doPost(e) {
         deleteByGid(SHEETS.bat_log,  delGids);
         deleteByGid(SHEETS.pit_bf,   delGids);
         deleteByGid(SHEETS.pit_runs, delGids);
+        addTombstones(delGids); // 삭제된 gid를 tombstone에 영구 기록
       }
-      // 시트별 행 검증 후 upsert
+      // tombstone 로드: 삭제된 gid로 들어오는 레코드는 upsert 거부
+      var tombGids = readTombstoneGids();
+      var tombSet  = new Set(tombGids);
+      // 시트별 행 검증 후 tombstone 필터 적용
       var vGames = sanitizeRows(data.games,    SHEETS.games);
       var vBat   = sanitizeRows(data.bat_log,  SHEETS.bat_log);
       var vPbf   = sanitizeRows(data.pit_bf,   SHEETS.pit_bf);
       var vPrun  = sanitizeRows(data.pit_runs, SHEETS.pit_runs);
-      upsertRows(SHEETS.games,    vGames.valid);
-      upsertRows(SHEETS.bat_log,  vBat.valid);
-      upsertRows(SHEETS.pit_bf,   vPbf.valid);
-      upsertRows(SHEETS.pit_runs, vPrun.valid);
+      var filtGames = tombSet.size ? vGames.valid.filter(function(g){ return !tombSet.has(String(g.id));  }) : vGames.valid;
+      var filtBat   = tombSet.size ? vBat.valid.filter(  function(e){ return !tombSet.has(String(e.gid)); }) : vBat.valid;
+      var filtPbf   = tombSet.size ? vPbf.valid.filter(  function(e){ return !tombSet.has(String(e.gid)); }) : vPbf.valid;
+      var filtPrun  = tombSet.size ? vPrun.valid.filter(  function(e){ return !tombSet.has(String(e.gid)); }) : vPrun.valid;
+      upsertRows(SHEETS.games,    filtGames);
+      upsertRows(SHEETS.bat_log,  filtBat);
+      upsertRows(SHEETS.pit_bf,   filtPbf);
+      upsertRows(SHEETS.pit_runs, filtPrun);
       return out({
         status: 'ok',
-        accepted: { games: vGames.valid.length, bat_log: vBat.valid.length, pit_bf: vPbf.valid.length, pit_runs: vPrun.valid.length, deleted_gids: delGids.length },
-        skipped:  { games: vGames.skipped,     bat_log: vBat.skipped,     pit_bf: vPbf.skipped,     pit_runs: vPrun.skipped,     deleted_gids: delSkipped }
+        tombstone_gids: tombGids,
+        accepted: { games: filtGames.length, bat_log: filtBat.length, pit_bf: filtPbf.length, pit_runs: filtPrun.length, deleted_gids: delGids.length },
+        skipped:  { games: vGames.skipped,   bat_log: vBat.skipped,  pit_bf: vPbf.skipped,  pit_runs: vPrun.skipped,  deleted_gids: delSkipped }
       });
     }
     return out({ status: 'ok' });
@@ -340,21 +376,23 @@ function doGet(e) {
     // 경기 목록만 빠르게 불러오기 (게임 시작 시 중복 검사용)
     if (action === 'fetchGames') {
       return out({
-        status:   'ok',
-        games:    readAll(SHEETS.games)
+        status:         'ok',
+        games:          readAll(SHEETS.games),
+        tombstone_gids: readTombstoneGids()
       });
     }
 
     // 전체 데이터 불러오기
     if (action === 'fetch') {
       return out({
-        status:   'ok',
-        teamName: TEAM_NAME,
-        games:    readAll(SHEETS.games),
-        bat_log:  readAll(SHEETS.bat_log),
-        pit_bf:   readAll(SHEETS.pit_bf),
-        pit_runs: readAll(SHEETS.pit_runs),
-        roster:   readAll(SHEETS.roster)
+        status:         'ok',
+        teamName:       TEAM_NAME,
+        games:          readAll(SHEETS.games),
+        bat_log:        readAll(SHEETS.bat_log),
+        pit_bf:         readAll(SHEETS.pit_bf),
+        pit_runs:       readAll(SHEETS.pit_runs),
+        roster:         readAll(SHEETS.roster),
+        tombstone_gids: readTombstoneGids()
       });
     }
 
