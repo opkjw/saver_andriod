@@ -2841,7 +2841,7 @@ function showGameModal(){
     fetchGamesOnly().then(function(res){
       const n=document.getElementById('m-sync-notice');
       if(!n)return;
-      const todayGames=S.games.filter(function(g){return g.date===dd&&(!S.game||S.game.id!==g.id);});
+      const todayGames=S.games.filter(function(g){return g.date===dd&&g.status!=='ended'&&(!S.game||S.game.id!==g.id);});
       if(todayGames.length>0){
         var cardsHtml='<div style="margin-bottom:12px">'
           +'<div style="font-size:11px;color:#15803d;margin-bottom:8px;padding:6px 10px;background:#dcfce7;border-radius:6px">✓ 경기 목록 최신화 완료'+(res.added>0?' ('+res.added+'건 신규)':'')+'</div>'
@@ -2864,7 +2864,7 @@ function showGameModal(){
   }
 }
 function renderUserGamePicker(today,res){
-  const todayGames=S.games.filter(function(g){return g.date===today;});
+  const todayGames=S.games.filter(function(g){return g.date===today&&g.status!=='ended';});
   const statusHtml=res&&res.ok
     ?'<div style="font-size:11px;color:#15803d;margin-bottom:12px;padding:6px 10px;background:#dcfce7;border-radius:6px">✓ 경기 목록 최신화 완료'+(res.added>0?' ('+res.added+'건 신규)':'')+'</div>'
     :(res&&res.reason==='offline'
@@ -2930,7 +2930,7 @@ function confirmGame(){
   const o=document.getElementById('m-opp').value.trim();
   const t=document.getElementById('m-gtype').value||'O';
   if(!d||!o){toast('날짜와 상대팀을 입력해주세요','err');return;}
-  const dup=S.games.find(function(g){return g.date===d&&g.opp===o&&(g.type||'O')===t&&(!S.game||g.id!==S.game.id);});
+  const dup=S.games.find(function(g){return g.date===d&&g.opp===o&&(g.type||'O')===t&&g.status!=='ended'&&(!S.game||g.id!==S.game.id);});
   if(dup){
     const bCnt=S.blog.filter(function(e){return e.gid===dup.id;}).length;
     const pCnt=S.pit_bf.filter(function(e){return e.gid===dup.id;}).length;
@@ -3027,7 +3027,6 @@ async function fetchGamesOnly(){
       var idx=S.games.findIndex(function(x){return x.id===g.id;});
       if(idx>=0){
         S.games[idx]=Object.assign({},S.games[idx],g);
-        S.syncedIds.add('g_'+g.id);
         updated++;
       } else {
         S.games.push(g);
