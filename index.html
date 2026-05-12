@@ -871,7 +871,7 @@ function rOCSel(mode){
   const isP=mode==='pit';
   const p=isP?ROSTER.find(x=>String(x.no)===String(S.curPit)):ROSTER.find(x=>String(x.no)===String(S.bp));
   if(!p)return'<div class="empty">선수를 먼저 선택하세요</div>';
-  let h='<div class="shdr"><button class="back" onclick="'+(isP?'S.ps=0':'S.bs=0')+';r()">←</button>'
+  let h='<div class="shdr"><button class="back" onclick="'+(isP?'S.curPit=null':'S.bs=0')+';r()">←</button>'
     +'<div><div class="s-title">'+esc(p.name)+' <span style="font-size:11px;color:var(--txt2)">#'+p.no+'</span></div>'
     +'<div class="s-sub">'+(isP?'상대 타자 결과 입력':'타석 결과 선택')+'</div></div></div>';
   h+='<div class="ocsec"><div class="oclbl">안타 / 출루</div><div class="ocgrid">';
