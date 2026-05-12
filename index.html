@@ -2805,8 +2805,25 @@ function showGameModal(){
     fetchGamesOnly().then(function(res){
       const n=document.getElementById('m-sync-notice');
       if(!n)return;
-      if(res.ok)n.outerHTML='<div style="font-size:11px;color:#15803d;margin-bottom:10px;padding:6px 10px;background:#dcfce7;border-radius:6px">✓ 경기 목록 최신화 완료'+(res.added>0?' ('+res.added+'건 신규)':'')+'</div>';
-      else n.outerHTML='<div style="font-size:11px;color:#92400e;margin-bottom:10px;padding:6px 10px;background:#fef3c7;border-radius:6px">⚠ 서버 확인 실패 — 로컬 데이터만 검사됩니다</div>';
+      const todayGames=S.games.filter(function(g){return g.date===dd&&(!S.game||S.game.id!==g.id);});
+      if(todayGames.length>0){
+        var cardsHtml='<div style="margin-bottom:12px">'
+          +'<div style="font-size:11px;color:#15803d;margin-bottom:8px;padding:6px 10px;background:#dcfce7;border-radius:6px">✓ 경기 목록 최신화 완료'+(res.added>0?' ('+res.added+'건 신규)':'')+'</div>'
+          +'<div style="font-size:12px;font-weight:700;color:var(--txt2);margin-bottom:6px">오늘 시작된 경기</div>';
+        todayGames.forEach(function(g){
+          cardsHtml+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px">'
+            +'<div><div style="font-weight:700;font-size:14px">vs '+(g.opp||'?')+'</div>'
+            +'<div style="font-size:11px;color:var(--txt2)">'+(g.type==='P'?'연습':'정식')+'경기</div></div>'
+            +'<button onclick="resumeExistingGame(&apos;'+g.id+'&apos;)" style="padding:8px 16px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">참여하기</button>'
+            +'</div>';
+        });
+        cardsHtml+='</div>';
+        n.outerHTML=cardsHtml;
+      } else if(res.ok){
+        n.outerHTML='<div style="font-size:11px;color:#15803d;margin-bottom:10px;padding:6px 10px;background:#dcfce7;border-radius:6px">✓ 경기 목록 최신화 완료'+(res.added>0?' ('+res.added+'건 신규)':'')+'</div>';
+      } else {
+        n.outerHTML='<div style="font-size:11px;color:#92400e;margin-bottom:10px;padding:6px 10px;background:#fef3c7;border-radius:6px">⚠ 서버 확인 실패 — 로컬 데이터만 검사됩니다</div>';
+      }
     });
   }
 }
