@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="야구기록">
 <meta name="theme-color" content="#1B3A6B">
-<title>⚾ 우리아이 야구 기록 Ball Matrix</title>
+<title>⚾ 모야모야-우리아이 야구 기록 Ball Matrix</title>
 <!-- version: 2026-05-13 -->
 <style>
 :root{--navy:#1B3A6B;--red:#922B21;--bg:#f9fafb;--card:#ffffff;--bg2:#f3f4f6;--txt:#111827;--txt2:#4b5563;--bdr:#e5e7eb;--bdr2:#d1d5db;--r:8px;--rl:12px;--sfb:env(safe-area-inset-bottom,0px);}
@@ -505,7 +505,7 @@ function renderLogin(){
   ol.style.display='flex';
   ol.innerHTML='<div class="pin-wrap">'
     +'<div class="pin-logo">⚾</div>'
-    +'<div class="pin-title">우리아이 야구 기록</div>'
+    +'<div class="pin-title">모야모야-우리아이 야구 기록</div>'
     +'<div class="pin-sub">코치/감독, 기록자 또는 학부모 PIN을 입력하세요</div>'
     +'<input class="pin-input" id="pin-input" type="password" inputmode="numeric" maxlength="8" placeholder="PIN 입력" autocomplete="off" onkeydown="if(event.key===&apos;Enter&apos;)doLogin()">'
     +'<div class="pin-err" id="pin-err"></div>'
@@ -793,7 +793,7 @@ function renderGHdr(){
       +(isUser?'<button class="gh-btn" onclick="leaveGame()" style="background:rgba(255,255,255,.15)">← 나가기</button>':'')
       +'</div></div>')
     :('<div class="ghdr"><div>'
-      +'<div class="gh-title">⚾ 우리아이 야구 기록</div>'
+      +'<div class="gh-title">⚾ 모야모야-우리아이 야구 기록</div>'
       +'<div class="gh-sub">'+(isFirstVisit?'👇 설정 탭에서 초기 설정을 시작하세요':'경기를 시작하세요')+'</div>'
       +'</div>'
       +'<div class="gh-right">'
