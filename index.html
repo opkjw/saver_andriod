@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="야구기록">
 <meta name="theme-color" content="#1B3A6B">
 <title>⚾ 우리아이 야구 기록 Ball Matrix</title>
-<!-- version: 2026-05-12 -->
+<!-- version: 2026-05-13 -->
 <style>
 :root{--navy:#1B3A6B;--red:#922B21;--bg:#f9fafb;--card:#ffffff;--bg2:#f3f4f6;--txt:#111827;--txt2:#4b5563;--bdr:#e5e7eb;--bdr2:#d1d5db;--r:8px;--rl:12px;--sfb:env(safe-area-inset-bottom,0px);}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -923,21 +923,24 @@ function rExtras(){
     +'<button class="exbtn" style="width:36px;height:36px" onclick="adj(\'bcs\',1)">+</button>'
     +'</div></div>';
   if(isBIP){
-    h+='<div style="padding:4px 12px 8px">'
-      +'<div style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:6px">🎯 타구 방향 <span style="font-weight:400">(선택사항)</span></div>'
+    h+='<div style="padding:4px 12px 8px;background:'+(S.bzone?'var(--card)':'#FFF8F0')+';border:1.5px solid '+(S.bzone?'var(--bdr)':'#F59E0B')+';border-radius:var(--r);margin:0 12px 10px">'
+      +'<div style="font-size:11px;font-weight:600;color:'+(S.bzone?'var(--txt2)':'#D97706')+';margin-bottom:6px">🎯 타구 방향 <span style="font-size:10px;background:'+(S.bzone?'#E5F3E8':'#FEF3C7')+';color:'+(S.bzone?'#15803D':'#92400E')+';padding:1px 5px;border-radius:3px;font-weight:700">'+(S.bzone?'✓ 선택됨':'필수')+'</span></div>'
       +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:5px">';
     zoneOF.forEach(z=>{
       const sel=S.bzone===z;
-      h+='<button onclick="S.bzone=S.bzone===\''+z+'\'?null:\''+z+'\';renderCt()" style="padding:9px 2px;border:'+(sel?'2px solid var(--navy)':'1px solid var(--bdr)')+';border-radius:var(--r);background:'+(sel?'#EBF0FB':'var(--card)')+';color:'+(sel?'var(--navy)':'var(--txt2)')+';font-size:12px;font-weight:'+(sel?'700':'400')+';cursor:pointer;font-family:inherit">'+z+'</button>';
+      h+='<button onclick="S.bzone=\''+z+'\';renderCt()" style="padding:9px 2px;border:'+(sel?'2px solid var(--navy)':'1px solid var(--bdr)')+';border-radius:var(--r);background:'+(sel?'#EBF0FB':'var(--card)')+';color:'+(sel?'var(--navy)':'var(--txt2)')+';font-size:12px;font-weight:'+(sel?'700':'400')+';cursor:pointer;font-family:inherit">'+z+'</button>';
     });
     h+='</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">';
     zoneIF.forEach(z=>{
       const sel=S.bzone===z;
-      h+='<button onclick="S.bzone=S.bzone===\''+z+'\'?null:\''+z+'\';renderCt()" style="padding:9px 2px;border:'+(sel?'2px solid var(--red)':'1px solid var(--bdr)')+';border-radius:var(--r);background:'+(sel?'#FDEDEC':'var(--card)')+';color:'+(sel?'var(--red)':'var(--txt2)')+';font-size:12px;font-weight:'+(sel?'700':'400')+';cursor:pointer;font-family:inherit">'+z+'</button>';
+      h+='<button onclick="S.bzone=\''+z+'\';renderCt()" style="padding:9px 2px;border:'+(sel?'2px solid var(--red)':'1px solid var(--bdr)')+';border-radius:var(--r);background:'+(sel?'#FDEDEC':'var(--card)')+';color:'+(sel?'var(--red)':'var(--txt2)')+';font-size:12px;font-weight:'+(sel?'700':'400')+';cursor:pointer;font-family:inherit">'+z+'</button>';
     });
-    h+='</div>'+(S.bzone?'<div style="margin-top:5px;font-size:11px;color:var(--txt2);text-align:center">선택: <strong style="color:var(--navy)">'+S.bzone+'</strong> <button onclick="S.bzone=null;renderCt()" style="background:none;border:none;color:var(--txt2);cursor:pointer;text-decoration:underline;font-size:11px">해제</button></div>':'')+'</div>';
+    h+='</div></div>';
   }
-  h+='<div class="savewrap"><button class="savebtn" onclick="saveBat()">✓ 기록 저장</button></div>';
+  const canSave=!isBIP||S.bzone;
+  h+='<div class="savewrap"><button class="savebtn" onclick="saveBat()" style="opacity:'+(canSave?'1':'0.4')+';pointer-events:'+(canSave?'auto':'none')+'">✓ 기록 저장</button>'
+    +(isBIP&&!S.bzone?'<div style="font-size:11px;color:#D97706;text-align:center;margin-top:6px">타구 방향을 선택해야 저장할 수 있습니다</div>':'')
+    +'</div>';
   return h;
 }
 
@@ -2025,6 +2028,7 @@ function adj(key,d){
 function saveBat(){
   if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
   const p=ROSTER.find(x=>x.no===S.bp);
+  if(BIP_OC.includes(S.bo)&&!S.bzone){toast('타구 방향을 선택해주세요','err');return;}
   S.blog.push({id:UID(),gid:S.game.id,date:S.game.date,opp:S.game.opp,
     pno:p.no,pn:p.name,oc:S.bo,rbi:S.brbi,run:0,sb:S.bsb,cs:S.bcs,zone:S.bzone});
   applyBaseAdvancement(S.bo,p.no);
