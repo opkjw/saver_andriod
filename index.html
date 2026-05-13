@@ -1672,11 +1672,7 @@ function showZoneModal(cbName,currentZone){
     +'<div style="font-size:16px;font-weight:700;color:#fff">🎯 타구 방향 선택</div>'
     +'<button onclick="closeZoneModal()" style="font-size:22px;background:none;border:none;color:rgba(255,255,255,0.55);padding:4px 8px;cursor:pointer;font-family:inherit">✕</button>'
     +'</div>'
-    +'<div style="flex:1;min-height:0;padding:0 8px 4px;overflow:hidden">'+rZoneInput(currentZone,cbName)+'</div>'
-    +'<div style="flex-shrink:0;padding:6px 20px 24px;text-align:center;font-size:11px;color:rgba(255,255,255,0.45);line-height:1.5">'
-    +'유격·2루 구분: 공이 2루 베이스 왼쪽으로 가면 유격, 오른쪽이나 정면은 2루<br>'
-    +'<span style="font-size:10px;color:rgba(255,255,255,0.3)">(처리한 야수 무관 — 공이 간 방향 기준)</span>'
-    +'</div>'
+    +'<div style="flex:1;min-height:0;padding:0 8px 16px;overflow:hidden">'+rZoneInput(currentZone,cbName)+'</div>'
     +'</div>';
   el.style.display='flex';
   el.onclick=function(e){if(e.target===el)closeZoneModal();};
@@ -1732,7 +1728,11 @@ function rZoneInput(currentZone,cb){
   h+='<path d="M '+if1.x+' '+if1.y+' A '+rIF+' '+rIF+' 0 0 1 '+if2.x+' '+if2.y+'" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>';
   h+='<path d="M '+bg1.x+' '+bg1.y+' A '+rOF+' '+rOF+' 0 0 1 '+bg2.x+' '+bg2.y+'" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5"/>';
   h+='<polygon points="'+cx+','+(cy-10)+' '+(cx+8)+','+(cy+1)+' '+(cx+4)+','+(cy+9)+' '+(cx-4)+','+(cy+9)+' '+(cx-8)+','+(cy+1)+'" fill="white" opacity=".9"/>';
-  return '<svg viewBox="0 0 350 295" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;max-height:calc(92vh - 140px);display:block;touch-action:manipulation">'+h+'</svg>';
+  // 가이드 텍스트 (필드 바로 아래)
+  h+='<rect x="20" y="300" width="310" height="40" rx="7" fill="rgba(255,255,255,0.08)"/>';
+  h+='<text x="175" y="317" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.85)" font-size="11.5" font-weight="500">유격·2루: 2루 베이스 왼쪽→유격 / 오른쪽·정면→2루</text>';
+  h+='<text x="175" y="333" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.4)" font-size="10">처리한 야수 무관 — 공이 간 방향 기준</text>';
+  return '<svg viewBox="0 0 350 348" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;max-height:calc(92vh - 120px);display:block;touch-action:manipulation">'+h+'</svg>';
 }
 
 function rSprayChart(pno){
