@@ -919,12 +919,14 @@ function rExtras(){
       +'</div></div></div>';
   }
   if(isBIP){
-    h+='<div onclick="openBatZoneModal()" style="margin:0 12px 10px;padding:14px 16px;background:'+(S.bzone?'var(--card)':'#FFF8F0')+';border:1.5px solid '+(S.bzone?'var(--bdr)':'#F59E0B')+';border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:space-between">'
+    h+='<div onclick="openBatZoneModal()" style="margin:0 12px 10px;padding:14px 16px;background:'+(S.bzone?'var(--card)':'#FFF8F0')+';border:1.5px solid '+(S.bzone?'#22c55e':'#F59E0B')+';border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:space-between">'
       +'<div>'
-      +'<div style="font-size:12px;font-weight:600;color:'+(S.bzone?'var(--txt2)':'#D97706')+'">🎯 타구 방향 <span style="font-size:10px;background:'+(S.bzone?'#E5F3E8':'#FEF3C7')+';color:'+(S.bzone?'#15803D':'#92400E')+';padding:1px 5px;border-radius:3px;font-weight:700">'+(S.bzone?'✓ 선택됨':'필수')+'</span></div>'
-      +(S.bzone?'<div style="font-size:22px;font-weight:800;color:var(--navy);margin-top:4px;letter-spacing:1px">'+S.bzone+'</div>':'<div style="font-size:13px;color:#D97706;margin-top:5px">터치하여 방향 선택 →</div>')
+      +'<div style="font-size:11px;font-weight:600;color:'+(S.bzone?'#15803D':'#D97706')+';margin-bottom:4px">🎯 타구 방향 <span style="font-size:10px;background:'+(S.bzone?'#dcfce7':'#FEF3C7')+';color:'+(S.bzone?'#15803D':'#92400E')+';padding:1px 6px;border-radius:3px;font-weight:700">'+(S.bzone?'✓ 선택됨':'필수')+'</span></div>'
+      +(S.bzone
+        ?'<div style="font-size:20px;font-weight:800;color:#15803D">'+zoneKo(S.bzone)+'<span style="font-size:13px;font-weight:500;color:var(--txt2);margin-left:6px">('+S.bzone+')</span></div>'
+        :'<div style="font-size:13px;color:#D97706">공이 날아간 방향을 선택해주세요</div>')
       +'</div>'
-      +'<div style="font-size:30px;opacity:0.45">🏟️</div>'
+      +'<div style="font-size:28px;opacity:'+(S.bzone?'0.7':'0.4')+'">'+(S.bzone?'✅':'🏟️')+'</div>'
       +'</div>';
   }
   const canSave=!isBIP||S.bzone;
@@ -1659,6 +1661,8 @@ function rStats(){
 
 // ── 스프레이 차트 ─────────────────────────────────────────
 // ── 인터랙티브 타구 방향 입력 다이어그램 ──────────────────
+var ZONE_KO={LF:'좌익',LC:'좌중',CF:'중앙',RC:'우중',RF:'우익','3B':'3루',SS:'유격','2B':'2루','1B':'1루'};
+function zoneKo(z){return z?(ZONE_KO[z]||z):'';}
 function selectBatZone(z){S.bzone=z;closeZoneModal();renderCt();}
 function selectEditZone(z){editState.zone=z;closeZoneModal();renderEditModal();}
 function openBatZoneModal(){showZoneModal('selectBatZone',S.bzone);}
@@ -1668,9 +1672,12 @@ function showZoneModal(cbName,currentZone){
   var el=document.getElementById('zone-modal');
   if(!el)return;
   el.innerHTML='<div style="width:100%;background:#1a2a1a;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:92vh">'
-    +'<div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:14px 20px 8px">'
+    +'<div style="flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px 10px">'
+    +'<div>'
     +'<div style="font-size:16px;font-weight:700;color:#fff">🎯 타구 방향 선택</div>'
-    +'<button onclick="closeZoneModal()" style="font-size:22px;background:none;border:none;color:rgba(255,255,255,0.55);padding:4px 8px;cursor:pointer;font-family:inherit">✕</button>'
+    +'<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px">공이 날아간 방향을 선택해주세요</div>'
+    +'</div>'
+    +'<button onclick="closeZoneModal()" style="font-size:22px;background:none;border:none;color:rgba(255,255,255,0.55);padding:4px 8px;cursor:pointer;font-family:inherit;margin-top:-2px">✕</button>'
     +'</div>'
     +'<div style="flex:1;min-height:0;padding:0 8px 16px;overflow:hidden">'+rZoneInput(currentZone,cbName)+'</div>'
     +'</div>';
@@ -1697,6 +1704,8 @@ function rZoneInput(currentZone,cb){
     {z:'RC',l:'우중',a1:9,  a2:27, c:'#2ecc71'},
     {z:'RF',l:'우익',a1:27, a2:45, c:'#1abc9c'},
   ];
+  var selLabel=currentZone?(zoneKo(currentZone)+' ('+currentZone+') 선택됨'):'구역을 터치하세요';
+  var selColor=currentZone?'#86efac':'rgba(255,255,255,0.4)';
   var h='';
   var bg1=pxy(-45,rOF),bg2=pxy(45,rOF);
   h+='<path d="M '+cx+' '+cy+' L '+bg1.x+' '+bg1.y+' A '+rOF+' '+rOF+' 0 0 1 '+bg2.x+' '+bg2.y+' Z" fill="#1e4d2b"/>';
@@ -1728,10 +1737,12 @@ function rZoneInput(currentZone,cb){
   h+='<path d="M '+if1.x+' '+if1.y+' A '+rIF+' '+rIF+' 0 0 1 '+if2.x+' '+if2.y+'" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>';
   h+='<path d="M '+bg1.x+' '+bg1.y+' A '+rOF+' '+rOF+' 0 0 1 '+bg2.x+' '+bg2.y+'" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5"/>';
   h+='<polygon points="'+cx+','+(cy-10)+' '+(cx+8)+','+(cy+1)+' '+(cx+4)+','+(cy+9)+' '+(cx-4)+','+(cy+9)+' '+(cx-8)+','+(cy+1)+'" fill="white" opacity=".9"/>';
+  // 선택 상태 표시 (필드 위)
+  h+='<text x="175" y="12" text-anchor="middle" dominant-baseline="middle" fill="'+selColor+'" font-size="12" font-weight="'+(currentZone?'700':'400')+'">'+selLabel+'</text>';
   // 가이드 텍스트 (필드 바로 아래)
-  h+='<rect x="20" y="300" width="310" height="40" rx="7" fill="rgba(255,255,255,0.08)"/>';
-  h+='<text x="175" y="317" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.85)" font-size="11.5" font-weight="500">유격·2루: 2루 베이스 왼쪽→유격 / 오른쪽·정면→2루</text>';
-  h+='<text x="175" y="333" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.4)" font-size="10">처리한 야수 무관 — 공이 간 방향 기준</text>';
+  h+='<rect x="14" y="296" width="322" height="46" rx="8" fill="rgba(255,220,100,0.12)" stroke="rgba(255,200,50,0.25)" stroke-width="1"/>';
+  h+='<text x="175" y="314" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,230,130,0.95)" font-size="11.5" font-weight="600">💡 유격·2루: 2루 베이스 왼쪽→유격 / 오른쪽·정면→2루</text>';
+  h+='<text x="175" y="331" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.45)" font-size="10">처리한 야수 무관 — 공이 날아간 방향 기준</text>';
   return '<svg viewBox="0 0 350 348" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;max-height:calc(92vh - 120px);display:block;touch-action:manipulation">'+h+'</svg>';
 }
 
@@ -2649,12 +2660,14 @@ function renderEditModal(){
     h+='<div class="em-card"><div class="em-card-lbl">도루</div><div class="em-card-val" id="em-sb">'+es.sb+'</div><div class="em-card-btns"><button class="em-card-btn" onclick="editState.sb=Math.max(0,editState.sb-1);document.getElementById(\'em-sb\').textContent=editState.sb">−</button><button class="em-card-btn" onclick="editState.sb++;document.getElementById(\'em-sb\').textContent=editState.sb">+</button></div></div>';
     h+='</div>';
     if(isBIP){
-      h+='<div onclick="openEditZoneModal()" style="margin-bottom:12px;padding:14px 16px;background:'+(es.zone?'var(--bg2)':'#FFF8F0')+';border:1.5px solid '+(es.zone?'var(--bdr)':'#F59E0B')+';border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:space-between">'
+      h+='<div onclick="openEditZoneModal()" style="margin-bottom:12px;padding:14px 16px;background:'+(es.zone?'var(--bg2)':'#FFF8F0')+';border:1.5px solid '+(es.zone?'#22c55e':'#F59E0B')+';border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:space-between">'
         +'<div>'
-        +'<div style="font-size:12px;font-weight:600;color:'+(es.zone?'var(--txt2)':'#D97706')+'">🎯 타구 방향 <span style="font-size:10px;background:'+(es.zone?'#E5F3E8':'#FEF3C7')+';color:'+(es.zone?'#15803D':'#92400E')+';padding:1px 5px;border-radius:3px;font-weight:700">'+(es.zone?'✓ 선택됨':'필수')+'</span></div>'
-        +(es.zone?'<div style="font-size:22px;font-weight:800;color:var(--navy);margin-top:4px;letter-spacing:1px">'+es.zone+'</div>':'<div style="font-size:13px;color:#D97706;margin-top:5px">터치하여 방향 선택 →</div>')
+        +'<div style="font-size:11px;font-weight:600;color:'+(es.zone?'#15803D':'#D97706')+';margin-bottom:4px">🎯 타구 방향 <span style="font-size:10px;background:'+(es.zone?'#dcfce7':'#FEF3C7')+';color:'+(es.zone?'#15803D':'#92400E')+';padding:1px 6px;border-radius:3px;font-weight:700">'+(es.zone?'✓ 선택됨':'필수')+'</span></div>'
+        +(es.zone
+          ?'<div style="font-size:20px;font-weight:800;color:#15803D">'+zoneKo(es.zone)+'<span style="font-size:13px;font-weight:500;color:var(--txt2);margin-left:6px">('+es.zone+')</span></div>'
+          :'<div style="font-size:13px;color:#D97706">공이 날아간 방향을 선택해주세요</div>')
         +'</div>'
-        +'<div style="font-size:30px;opacity:0.45">🏟️</div>'
+        +'<div style="font-size:28px;opacity:'+(es.zone?'0.7':'0.4')+'">'+(es.zone?'✅':'🏟️')+'</div>'
         +'</div>';
     }
   }
