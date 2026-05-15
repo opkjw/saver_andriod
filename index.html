@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="야구기록">
 <meta name="theme-color" content="#1B3A6B">
 <title>⚾ 모야모야-우리아이 야구 기록 Ball Matrix</title>
-<!-- version: 2026-05-13 -->
+<!-- version: 2026-05-15 -->
 <style>
 :root{--navy:#1B3A6B;--red:#922B21;--bg:#f9fafb;--card:#ffffff;--bg2:#f3f4f6;--txt:#111827;--txt2:#4b5563;--bdr:#e5e7eb;--bdr2:#d1d5db;--r:8px;--rl:12px;--sfb:env(safe-area-inset-bottom,0px);}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -285,6 +285,8 @@ let S={
   blog:[],pit_bf:[],pit_runs:[],
   // 동기화
   scriptUrl:"",scriptToken:"",lastSync:null,syncing:false,loading:false,statsLoading:false,logLoading:false,rosterDirty:false,syncedIds:new Set(),downloadedGids:new Set(),deletedGids:[],
+  // 팀 레지스트리
+  masterUrl:"",teamName:"",teamLocked:false,
 };
 
 // ── 저장/불러오기 ──────────────────────────────────────────
@@ -293,7 +295,7 @@ function load(){
     const raw=localStorage.getItem('bb_final');
     if(raw){
       const d=JSON.parse(raw);
-      ['blog','pit_bf','pit_runs','games','game','gcnt','scriptUrl','scriptToken','lastSync','rosterDirty','deletedGids','schoolName','bases','outs','pitBases','pitOuts'].forEach(k=>{if(d[k]!==undefined)S[k]=d[k];});
+      ['blog','pit_bf','pit_runs','games','game','gcnt','scriptUrl','scriptToken','lastSync','rosterDirty','deletedGids','schoolName','bases','outs','pitBases','pitOuts','masterUrl','teamName','teamLocked'].forEach(k=>{if(d[k]!==undefined)S[k]=d[k];});
       if(d.myPlayer!=null)S.myPlayer=parseInt(d.myPlayer)||null;
       S.syncedIds=new Set(d.syncedIds||[]);
       // downloadedGids: 저장된 값 복원, 없으면 기존 로컬 레코드에서 bootstrap
@@ -321,7 +323,7 @@ function save(){
       blog:S.blog,pit_bf:S.pit_bf,pit_runs:S.pit_runs,games:S.games,
       game:S.game,gcnt:S.gcnt,scriptUrl:S.scriptUrl,lastSync:S.lastSync,
       syncedIds:[...S.syncedIds],downloadedGids:[...S.downloadedGids],roster:ROSTER,rosterDirty:S.rosterDirty,myPlayer:S.myPlayer,
-      deletedGids:S.deletedGids,schoolName:S.schoolName,scriptToken:S.scriptToken,setupDone:S.setupDone,setupStep:S.setupStep,bases:S.bases,outs:S.outs,pitBases:S.pitBases,pitOuts:S.pitOuts,
+      deletedGids:S.deletedGids,schoolName:S.schoolName,scriptToken:S.scriptToken,setupDone:S.setupDone,setupStep:S.setupStep,bases:S.bases,outs:S.outs,pitBases:S.pitBases,pitOuts:S.pitOuts,masterUrl:S.masterUrl,teamName:S.teamName,teamLocked:S.teamLocked,
     }));
   }catch(e){console.error(e);}
 }
@@ -546,8 +548,83 @@ function doLogout(){
   renderLogin();
 }
 
+// ── 팀 레지스트리 — 초대 링크 처리 ──────────────────────────
+// 앱 로드 시 ?reset=TOKEN&src=BASE64_MASTER_URL 파라미터 감지
+async function checkResetLink(){
+  var params=new URLSearchParams(location.search);
+  var token=(params.get('reset')||'').trim().toUpperCase();
+  var src=params.get('src')||'';
+  if(!token||!src)return;
+  // URL 파라미터를 즉시 제거 (뒤로가기로 재사용 방지)
+  history.replaceState(null,'',location.pathname);
+  var masterUrl='';
+  try{masterUrl=atob(decodeURIComponent(src));}catch(e){toast('링크 형식 오류','err');return;}
+  // 검증 중 안내
+  var ol=document.getElementById('setup-overlay');
+  if(ol){
+    ol.style.display='flex';
+    ol.innerHTML='<div class="su-body" style="text-align:center">'
+      +'<div class="su-icon">🔐</div>'
+      +'<div class="su-title">링크 확인 중...</div>'
+      +'<div class="su-desc">잠시만 기다려 주세요</div>'
+      +'</div>';
+  }
+  try{
+    var res=await fetch(masterUrl+'?action=validateToken&token='+encodeURIComponent(token));
+    var data=await res.json();
+    if(data.status!=='ok'){toast(data.message||'유효하지 않은 링크입니다','err');if(ol)ol.style.display='none';return;}
+    // 토큰 유효 → 팀 잠금 해제, masterUrl 저장, 셋업 재시작
+    S.masterUrl=masterUrl;
+    S.teamLocked=false;
+    S.setupDone=false;
+    S.setupStep=1;
+    save();
+    renderSetup();
+  }catch(e){toast('링크 검증 실패: 네트워크 오류','err');if(ol)ol.style.display='none';}
+}
+
+// 팀 선택 완료 (step 1 → step 2)
+function selectTeamFromRegistry(name,url){
+  S.teamName=name;
+  S.scriptUrl=url;
+  S.teamLocked=false; // 셋업 완료 시 finishSetup에서 true로
+  S.setupStep=2;
+  save();
+  renderSetup();
+}
+
+var _registryTeams=[];
+async function _loadRegistryTeams(){
+  var el=document.getElementById('su-team-registry');
+  if(!el)return;
+  try{
+    var res=await fetch(S.masterUrl+'?action=teams');
+    var data=await res.json();
+    if(data.status!=='ok')throw new Error(data.message||'오류');
+    _registryTeams=data.teams||[];
+    if(!_registryTeams.length){
+      el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.7);font-size:13px;padding:20px">등록된 팀이 없습니다</div>';
+      return;
+    }
+    var html='<div style="max-height:240px;overflow-y:auto;border-radius:10px">';
+    _registryTeams.forEach(function(t,i){
+      html+='<button onclick="_selectRegistryTeam('+i+')" style="display:block;width:100%;text-align:left;padding:14px;min-height:44px;background:rgba(255,255,255,.08);border:none;border-bottom:1px solid rgba(255,255,255,.07);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;word-break:keep-all">'+esc(t.name)+'</button>';
+    });
+    html+='</div>';
+    el.innerHTML=html;
+  }catch(e){
+    var el2=document.getElementById('su-team-registry');
+    if(el2)el2.innerHTML='<div style="text-align:center;color:#fca5a5;font-size:13px;padding:20px">팀 목록 불러오기 실패</div>';
+  }
+}
+function _selectRegistryTeam(i){
+  var t=_registryTeams[i];
+  if(!t)return;
+  selectTeamFromRegistry(t.name,t.url);
+}
+
 // ── 온보딩 셋업 위자드 ──────────────────────────────────
-// Step 0: 환영  Step 1: 클라우드 URL+자동불러오기  Step 2: 우리아이 선택  Step 3: 완료
+// Step 0: 환영  Step 1: 팀 선택(레지스트리) or URL직접입력  Step 2: 우리아이 선택  Step 3: 완료
 function renderSetup(){
   var ol=document.getElementById('setup-overlay');
   if(!ol)return;
@@ -564,16 +641,33 @@ function renderSetup(){
       +'<div class="su-desc">선수별 타석·투구 기록부터<br>세이버매트릭스 통계까지<br>한 번에 관리하세요</div>';
     actions='<button class="su-next" onclick="S.setupStep=1;renderSetup()">시작하기</button>';
   } else if(step===1){
-    // 클라우드 URL 입력 + 자동 불러오기
-    body='<div class="su-icon">🌥️</div>'
-      +'<div class="su-title">클라우드 연동</div>'
-      +'<div class="su-desc">클라우드 연동을 진행합니다</div>'
-      +'<div class="su-field">'
-      +'<div class="su-lbl">Apps Script URL</div>'
-      +'<input class="su-input" id="su-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" value="'+esc(S.scriptUrl)+'" autocomplete="off" spellcheck="false">'
-      +'</div>'
-      +'<div class="su-connst" id="su-connst"></div>';
-    actions='<button class="su-next" id="su-fetch-btn" onclick="saveSetupUrl()">연결 및 불러오기</button>';
+    if(S.masterUrl){
+      // 레지스트리에서 팀 목록 표시
+      body='<div class="su-icon">🏟️</div>'
+        +'<div class="su-title">팀을 선택해주세요</div>'
+        +'<div class="su-desc">소속 팀을 선택하면<br>자동으로 연결됩니다</div>'
+        +'<div id="su-team-registry" style="width:100%;margin-top:8px">'
+        +'<div style="text-align:center;color:rgba(255,255,255,.5);font-size:13px;padding:20px">팀 목록 불러오는 중...</div>'
+        +'</div>';
+      actions='<div id="su-registry-actions"></div>';
+      // 비동기로 팀 목록 fetch
+      setTimeout(function(){_loadRegistryTeams();},100);
+    } else {
+      // 마스터 URL 없음 — 관리자 직접 입력 or 초대 링크 안내
+      body='<div class="su-icon">🔗</div>'
+        +'<div class="su-title">팀 연결</div>'
+        +'<div class="su-desc" style="margin-bottom:12px">관리자에게 초대 링크를 요청하거나<br>직접 URL을 입력하세요</div>'
+        +'<div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:center">'
+        +'<div style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:4px">초대 링크가 있다면</div>'
+        +'<div style="font-size:12px;color:rgba(255,255,255,.4)">관리자에게 받은 링크를 열면<br>자동으로 팀이 연결됩니다</div>'
+        +'</div>'
+        +'<div class="su-field">'
+        +'<div class="su-lbl">직접 입력 (감독/기록자용)</div>'
+        +'<input class="su-input" id="su-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" value="'+esc(S.scriptUrl)+'" autocomplete="off" spellcheck="false">'
+        +'</div>'
+        +'<div class="su-connst" id="su-connst"></div>';
+      actions='<button class="su-next" id="su-fetch-btn" onclick="saveSetupUrl()">연결 및 불러오기</button>';
+    }
   } else if(step===2){
     // 학교/팀명 입력 (목록 찾기 또는 직접 입력)
     body='<div class="su-icon">🏫</div>'
@@ -723,6 +817,7 @@ function finishSetup(asAdmin){
     else{S.role=null;sessionStorage.removeItem('bb_role');}
   } else {
     S.role='user';sessionStorage.setItem('bb_role','user');
+    if(S.masterUrl)S.teamLocked=true;
   }
   save();
   document.getElementById('setup-overlay').style.display='none';
@@ -1944,7 +2039,8 @@ function rSettings(){
     +'<div class="cfgtitle">🏫 학교 / 팀 정보</div>'
     +(isAdmin
       ?'<div style="display:flex;gap:8px"><input class="cfginput" id="school-input" placeholder="예: 서울초등학교" maxlength="30" value="'+esc(S.schoolName)+'" style="flex:1;margin-bottom:0"><button class="cfgbtn pr" onclick="saveSchoolName()" style="white-space:nowrap;flex-shrink:0">✓ 저장</button></div>'
-      :'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+(S.schoolName||'(미설정)')+'</div>')
+      :'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+(S.schoolName||'(미설정)')+'</div>'
+      +(S.teamLocked?'<div style="font-size:12px;color:var(--txt);margin-top:6px">🔒 팀 변경은 관리자에게 초대 링크를 요청하세요</div>':''))
     +'</div>'
     +(S.scriptUrl
       ?'<div class="cfgcard">'
@@ -3347,6 +3443,7 @@ document.addEventListener('keydown',function(e){if(e.key!=='Enter')return;if(doc
 load();
 if(S.game&&S.game.id&&S.scriptUrl)lockGame(S.game.id);
 r();
+checkResetLink();
 if(navigator.serviceWorker){
   navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(function(e){console.log('SW registration failed',e);});
   navigator.serviceWorker.addEventListener('controllerchange',function(){window.location.reload();});
