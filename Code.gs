@@ -135,6 +135,23 @@ function getSheet(name) {
   return ss.getSheetByName(name) || ss.insertSheet(name);
 }
 
+// ── 초기화: 모든 시트 한번에 생성 ─────────────────────────
+// Apps Script 에디터에서 이 함수를 직접 실행하면 됩니다.
+function initSheets() {
+  const created = [], existing = [];
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Object.entries(SHEETS).forEach(function([key, name]) {
+    if (ss.getSheetByName(name)) {
+      existing.push(name);
+    } else {
+      ss.insertSheet(name);
+      created.push(name);
+    }
+  });
+  Logger.log('✅ 생성됨: ' + (created.length ? created.join(', ') : '없음'));
+  Logger.log('📋 이미 있음: ' + existing.join(', '));
+}
+
 // ── 유틸: 시트 전체를 JSON 배열로 읽기 ────────────────────
 function readAll(sheetName) {
   const sh = getSheet(sheetName);
