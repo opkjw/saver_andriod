@@ -788,7 +788,50 @@ function saveSetupSchool(){
     if(st){st.textContent='⚠ 팀/학교명을 입력해주세요.';st.style.color='#fca5a5';}
     return;
   }
-  S.schoolName=name;S.setupStep=3;save();renderSetup();
+  S.schoolName=name;save();
+  fetchTeamData();
+}
+async function fetchTeamData(){
+  var ol=document.getElementById('setup-overlay');
+  if(ol){
+    ol.innerHTML='<div class="su-progress"></div>'
+      +'<div class="su-body" style="text-align:center">'
+      +'<div class="su-icon">☁️</div>'
+      +'<div class="su-title">데이터 불러오는 중...</div>'
+      +'<div class="su-desc">클라우드에서 팀 정보를<br>가져오고 있습니다</div>'
+      +'</div>';
+  }
+  try{
+    var res=await fetch(S.scriptUrl+'?action=fetch');
+    var data=await res.json();
+    if(data.status!=='ok')throw new Error(data.message||'서버 오류');
+    S.games=data.games||[];
+    S.blog=data.bat_log||[];
+    S.pit_bf=data.pit_bf||[];
+    S.pit_runs=data.pit_runs||[];
+    if(data.roster&&data.roster.length>0){parseRosterSiblings(data.roster);ROSTER.splice(0,ROSTER.length,...data.roster);}
+    S.syncedIds=new Set();
+    (data.games||[]).forEach(function(g){S.syncedIds.add('g_'+g.id);});
+    (data.bat_log||[]).forEach(function(e){S.syncedIds.add(e.id);});
+    (data.pit_bf||[]).forEach(function(e){S.syncedIds.add(e.id);});
+    (data.pit_runs||[]).forEach(function(e){S.syncedIds.add(e.id);});
+    if(data.teamName)S.schoolName=data.teamName;
+    S.lastSync=Date.now();
+    S.setupStep=3;save();renderSetup();
+  }catch(err){
+    if(ol){
+      ol.innerHTML='<div class="su-progress"></div>'
+        +'<div class="su-body" style="text-align:center">'
+        +'<div class="su-icon">⚠️</div>'
+        +'<div class="su-title">연결 실패</div>'
+        +'<div class="su-desc" style="color:#fca5a5">'+(err.message||'네트워크 오류')+'</div>'
+        +'</div>'
+        +'<div class="su-actions">'
+        +'<button class="su-next" onclick="fetchTeamData()">다시 시도</button>'
+        +'<button class="su-skip" onclick="S.setupStep=3;save();renderSetup()">건너뛰기</button>'
+        +'</div>';
+    }
+  }
 }
 async function saveSetupUrl(){
   var el=document.getElementById('su-url');
