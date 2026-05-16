@@ -891,6 +891,13 @@ async function doSetupLogin(){
     var res=await fetch(S.scriptUrl+'?action=login&pin='+encodeURIComponent(pin));
     var data=await res.json();
     if(data.status==='ok'&&data.role){
+      if(data.role!=='user'){
+        if(st){st.textContent='학부모 PIN을 입력해주세요.';st.style.color='#fca5a5';}
+        if(el)el.value='';
+        if(btn){btn.disabled=false;}
+        setTimeout(function(){if(el)el.focus();},100);
+        return;
+      }
       S.role=data.role;
       sessionStorage.setItem('bb_role',data.role);
       finishSetup(false);
