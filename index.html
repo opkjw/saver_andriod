@@ -1,4 +1,4 @@
-<!-- version: 2026-05-15 -->
+<!-- version: 2026-05-16 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="야구기록">
 <meta name="theme-color" content="#1B3A6B">
 <title>⚾ 모야모야-우리아이 야구 기록 Ball Matrix</title>
-<!-- version: 2026-05-15 -->
+<!-- version: 2026-05-16 -->
 <style>
 :root{--navy:#1B3A6B;--red:#922B21;--bg:#f9fafb;--card:#ffffff;--bg2:#f3f4f6;--txt:#111827;--txt2:#4b5563;--bdr:#e5e7eb;--bdr2:#d1d5db;--r:8px;--rl:12px;--sfb:env(safe-area-inset-bottom,0px);}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -1034,7 +1034,7 @@ function renderCt(){
   else el.innerHTML=rSettings();
 }
 function r(){renderSetup();renderPlayerSel();renderLogin();renderGHdr();renderTabs();renderCt();}
-function setTab(i){if(i===3&&S.role==='recorder')return;S.tab=i;r();if(i===3)checkAndLoadStats();}
+function setTab(i){if(i===3&&S.role==='recorder')return;if(i===3&&S.role==='user'&&S.myPlayer&&S.sprayPlayer===null){S.sprayPlayer=Number(S.myPlayer);}S.tab=i;r();if(i===3)checkAndLoadStats();}
 
 // ── 타자 탭 ──────────────────────────────────────────────
 function rBatTab(){
@@ -1784,8 +1784,8 @@ function rStats(){
   if(st===0){
     // ── 타자 ────────────────────────────────────────────────
     if(bs.length&&batRows.length){
-      const activeSprayNo=S.sprayPlayer!==null?S.sprayPlayer:(myBatSt?Number(myBatSt.no):null);
-      h+='<div class="seclbl">⚾ 타자 기본 기록 <span style="font-size:10px;font-weight:400;color:var(--txt2)">— 이름 탭 → '+(isAdmin?'스프레이+세이버 연동':'스프레이 차트'+(myBatSt?' · 대표 자동':''))+'</span></div>'
+      const activeSprayNo=S.sprayPlayer!==null?S.sprayPlayer:(isAdmin&&myBatSt?Number(myBatSt.no):null);
+      h+='<div class="seclbl">⚾ 타자 기본 기록 <span style="font-size:10px;font-weight:400;color:var(--txt2)">— 이름 탭 → '+(isAdmin?'스프레이+세이버 연동':'스프레이 차트')+'</span></div>'
         +'<div class="statwrap"><table><thead><tr>'
         +'<th style="text-align:left;min-width:62px">선수</th>'
         +'<th class="sth" onclick="showStatInfo(\'PA\')">PA</th><th class="sth" onclick="showStatInfo(\'AB\')">AB</th>'
