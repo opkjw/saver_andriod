@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baseball-app-v20260516b';
+const CACHE_NAME = 'baseball-app-v20260517a';
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -28,11 +28,21 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // HTML(네비게이션) 요청: network-first — 항상 최신 버전, 오프라인만 캐시 폴백
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+  // 나머지 리소스: cache-first
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);
-    }).catch(() => {
-      return caches.match(event.request);
-    })
+    }).catch(() => caches.match(event.request))
   );
 });
