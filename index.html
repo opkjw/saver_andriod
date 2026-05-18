@@ -108,7 +108,7 @@ tr:nth-child(even) td{background:var(--bg2)}
 .hi{color:var(--navy);font-weight:600}.hir{color:var(--red);font-weight:600}
 .sth{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.5);padding:12px 8px}
 .sth:active{opacity:.7}
-.undobtn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:12px;font-weight:600;cursor:pointer}
+.undobtn{display:flex;align-items:center;gap:5px;padding:10px 14px;min-height:44px;border-radius:8px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:12px;font-weight:600;cursor:pointer}
 .undobtn:active{opacity:.7}
 .seclbl{padding:10px 14px 4px;font-size:11px;font-weight:600;color:var(--txt2);letter-spacing:.04em;text-transform:uppercase}
 .empty{padding:40px 20px;text-align:center;color:var(--txt2)}
@@ -2601,7 +2601,7 @@ function rBaseDiagram(){
   for(var i=0;i<3;i++)dots+='<span style="width:11px;height:11px;border-radius:50%;background:'+(i<outs?'#dc2626':'var(--bdr)')+';display:inline-block;margin:0 2px"></span>';
   var h='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);margin:8px 12px;padding:12px">';
   var innLbl=(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초');
-  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:12px;padding:2px 4px;cursor:pointer;line-height:1';
+  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:12px;padding:4px 8px;min-width:36px;min-height:36px;cursor:pointer;line-height:1';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
   h+='<span style="font-size:11px;font-weight:700;color:var(--txt)">⚾ 베이스 현황</span>';
   h+='<div style="display:flex;align-items:center;gap:2px">'
