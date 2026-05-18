@@ -1167,6 +1167,11 @@ function rPitTab(){
     +'<div class="pcard-role">'+esc(p.pos)+' · 투구 중</div></div>'
     +'</div>'
     +divider
+    +'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px;flex-shrink:0">'
+    +'<div style="font-size:15px;font-weight:700;color:var(--navy);line-height:1">'+(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초')+'</div>'
+    +'<div style="font-size:11px;color:var(--txt2);margin-top:3px">회차</div>'
+    +'</div>'
+    +divider
     +'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;flex-shrink:0">'
     +'<div style="font-size:16px;font-weight:700;color:var(--txt);line-height:1">'+st.ipd+'</div>'
     +'<div style="font-size:11px;color:var(--txt2);margin-top:3px">이닝</div>'
