@@ -1167,9 +1167,10 @@ function rPitTab(){
     +'<div class="pcard-role">'+esc(p.pos)+' · 투구 중</div></div>'
     +'</div>'
     +divider
-    +'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px;flex-shrink:0">'
-    +'<div style="font-size:15px;font-weight:700;color:var(--navy);line-height:1">'+(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초')+'</div>'
-    +'<div style="font-size:11px;color:var(--txt2);margin-top:3px">회차</div>'
+    +'<div style="display:flex;align-items:center;padding:0 6px;flex-shrink:0">'
+    +'<button onclick="adjInning(-1)" style="background:none;border:none;color:var(--txt2);font-size:12px;padding:4px 6px;min-width:28px;min-height:36px;cursor:pointer;line-height:1">◀</button>'
+    +'<span style="font-size:13px;font-weight:700;color:var(--navy);min-width:38px;text-align:center">'+(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초')+'</span>'
+    +'<button onclick="adjInning(1)" style="background:none;border:none;color:var(--txt2);font-size:12px;padding:4px 6px;min-width:28px;min-height:36px;cursor:pointer;line-height:1">▶</button>'
     +'</div>'
     +divider
     +'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;flex-shrink:0">'
