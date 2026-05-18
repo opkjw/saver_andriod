@@ -1158,14 +1158,26 @@ function rPitTab(){
   if(!p){S.curPit=null;return rPitTab();}
   const gid=S.game?S.game.id:null;
   const st=calcPitStats(S.curPit,gid);
-  let h='<div class="pcard">'
-    +'<div class="pcard-hdr"><div class="pcard-l">'
+  var divider='<div style="width:1px;background:var(--bdr);flex-shrink:0"></div>';
+  let h='<div class="pcard" style="padding:0;overflow:hidden">'
+    +'<div style="display:flex;align-items:stretch">'
+    +'<div style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;min-width:0">'
     +'<div class="pav">'+p.no+'</div>'
-    +'<div><div class="pcard-name">'+esc(p.name)+'</div><div class="pcard-role">'+esc(p.pos)+' · 투구 중</div></div>'
-    +'</div><button class="pchg" onclick="S.curPit=null;r()">⇄ 교체</button></div>'
-    +'<div style="display:flex;justify-content:space-between;padding:6px 14px 10px;font-size:13px">'
-    +'<span style="color:var(--txt2)"><strong style="color:var(--txt);font-size:15px">'+st.ipd+'</strong> 이닝</span>'
-    +'<span style="color:var(--txt2)">자책 <strong style="color:var(--red);font-size:15px">'+st.er+'</strong></span>'
+    +'<div style="min-width:0"><div class="pcard-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.name)+'</div>'
+    +'<div class="pcard-role">'+esc(p.pos)+' · 투구 중</div></div>'
+    +'</div>'
+    +divider
+    +'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;flex-shrink:0">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--txt);line-height:1">'+st.ipd+'</div>'
+    +'<div style="font-size:11px;color:var(--txt2);margin-top:3px">이닝</div>'
+    +'</div>'
+    +divider
+    +'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;flex-shrink:0">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--red);line-height:1">'+st.er+'</div>'
+    +'<div style="font-size:11px;color:var(--txt2);margin-top:3px">자책</div>'
+    +'</div>'
+    +divider
+    +'<button class="pchg" onclick="S.curPit=null;r()" style="border-radius:0;border:none;padding:10px 14px;flex-shrink:0">⇄ 교체</button>'
     +'</div></div>';
   h+=rOCSel('pit');
   h+=rPitBaseDiagram();
