@@ -1162,13 +1162,10 @@ function rPitTab(){
     +'<div class="pav">'+p.no+'</div>'
     +'<div><div class="pcard-name">'+esc(p.name)+'</div><div class="pcard-role">'+esc(p.pos)+' · 투구 중</div></div>'
     +'</div><button class="pchg" onclick="S.curPit=null;r()">⇄ 교체</button></div>'
-    +'<div class="pstats">'
-    +['<div class="pstat em"><div class="pstat-val">'+st.ipd+'</div><div class="pstat-lbl">IP</div></div>',
-      '<div class="pstat"><div class="pstat-val">'+st.h+'</div><div class="pstat-lbl">피안타</div></div>',
-      '<div class="pstat"><div class="pstat-val">'+st.bb+'</div><div class="pstat-lbl">볼넷</div></div>',
-      '<div class="pstat"><div class="pstat-val">'+st.k+'</div><div class="pstat-lbl">삼진</div></div>',
-      '<div class="pstat em"><div class="pstat-val">'+st.er+'</div><div class="pstat-lbl">자책</div></div>',
-    ].join('')+'</div></div>';
+    +'<div style="display:flex;justify-content:space-between;padding:6px 14px 10px;font-size:13px">'
+    +'<span style="color:var(--txt2)"><strong style="color:var(--txt);font-size:15px">'+st.ipd+'</strong> 이닝</span>'
+    +'<span style="color:var(--txt2)">자책 <strong style="color:var(--red);font-size:15px">'+st.er+'</strong></span>'
+    +'</div></div>';
   h+=rOCSel('pit');
   h+=rPitBaseDiagram();
   var gidNow=S.game?S.game.id:null;
