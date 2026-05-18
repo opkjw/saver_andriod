@@ -1100,11 +1100,6 @@ function rOCSel(mode){
       +'<div class="s-title">'+esc(p.name)+' <span style="font-size:11px;color:var(--txt2)">#'+p.no+'</span></div>'
       +'<div class="s-sub">상대 타자 결과 입력</div>'
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:1px;flex-shrink:0">'
-      +'<button onclick="adjInning(-1)" style="'+ab+'">◀</button>'
-      +'<span style="font-size:12px;font-weight:700;color:var(--navy);min-width:34px;text-align:center">'+innLbl+'</span>'
-      +'<button onclick="adjInning(1)" style="'+ab+'">▶</button>'
-      +'</div>'
       +'<div style="text-align:center;flex-shrink:0">'
       +'<div style="font-size:14px;font-weight:700;color:var(--txt);line-height:1">'+st.ipd+'</div>'
       +'<div style="font-size:10px;color:var(--txt2);margin-top:1px">이닝</div>'
@@ -2542,10 +2537,17 @@ function rPitBaseDiagram(){
   var outs=S.pitOuts||0;
   var dots='';
   for(var i=0;i<3;i++)dots+='<span style="width:11px;height:11px;border-radius:50%;background:'+(i<outs?'#dc2626':'var(--bdr)')+';display:inline-block;margin:0 2px"></span>';
+  var innLbl=(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초');
+  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:12px;padding:2px 4px;cursor:pointer;line-height:1';
   var h='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);margin:8px 12px;padding:12px">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
   h+='<span style="font-size:11px;font-weight:700;color:var(--txt)">🎯 상대팀 베이스</span>';
-  h+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--txt2)">아웃</span>'+dots+'</div>';
+  h+='<div style="display:flex;align-items:center;gap:2px">'
+    +'<button style="'+adjBtnSt+'" onclick="adjInning(-1)">◀</button>'
+    +'<span style="font-size:12px;font-weight:700;color:var(--navy);min-width:38px;text-align:center">'+innLbl+'</span>'
+    +'<button style="'+adjBtnSt+'" onclick="adjInning(1)">▶</button>'
+    +'</div>';
+  h+='<div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;color:var(--txt2)">아웃</span>'+dots+'</div>';
   h+='</div>';
   h+='<div style="display:flex;flex-direction:column;align-items:center;gap:10px">';
   h+='<div>'+pitSlot('b2','2루')+'</div>';
