@@ -2598,9 +2598,16 @@ function rBaseDiagram(){
   var dots='';
   for(var i=0;i<3;i++)dots+='<span style="width:11px;height:11px;border-radius:50%;background:'+(i<outs?'#dc2626':'var(--bdr)')+';display:inline-block;margin:0 2px"></span>';
   var h='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);margin:8px 12px;padding:12px">';
+  var innLbl=(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초');
+  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:13px;padding:2px 4px;cursor:pointer;line-height:1';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
   h+='<span style="font-size:11px;font-weight:700;color:var(--txt)">⚾ 베이스 현황</span>';
-  h+='<div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;color:var(--txt2)">아웃</span>'+dots+'</div>';
+  h+='<div style="display:flex;align-items:center;gap:4px">'
+    +'<button style="'+adjBtnSt+'" onclick="adjInning(-1)">◀</button>'
+    +'<span style="font-size:12px;font-weight:700;color:var(--navy);min-width:38px;text-align:center">'+innLbl+'</span>'
+    +'<button style="'+adjBtnSt+'" onclick="adjInning(1)">▶</button>'
+    +'<span style="font-size:10px;color:var(--txt2);margin-left:4px">아웃</span>'+dots
+    +'</div>';
   h+='</div>';
   h+='<div style="display:flex;flex-direction:column;align-items:center;gap:10px">';
   h+='<div>'+baseSlot('b2','2루')+'</div>';
@@ -2738,7 +2745,21 @@ function removeFromBase(base){
   pushUndo(snapBaseSt((p?p.name:'선수')+' 아웃'));
   S.bases[base]=null;S.outs=(S.outs||0)+1;save();renderCt();
 }
+function advanceInning(){
+  if(S.topBot!=='bot'){S.topBot='bot';}
+  else{S.inning=Math.min((S.inning||1)+1,15);S.topBot='top';}
+}
+function adjInning(d){
+  if(!S.game)return;
+  if(d>0){advanceInning();}
+  else{
+    if(S.topBot==='bot'){S.topBot='top';}
+    else{S.inning=Math.max((S.inning||1)-1,1);S.topBot='bot';}
+  }
+  save();renderCt();
+}
 function endInning(){
+  advanceInning();
   S.bases={b1:null,b2:null,b3:null};S.outs=0;save();renderCt();toast('이닝 종료','ok');
 }
 function showTiebreakerModal(){
@@ -3326,7 +3347,7 @@ function doCreateGame(d,o,t){
   S.game={id:UID(),no:S.gcnt++,date:d,opp:o,type:t,recordedBy:S.role||'admin',status:'active'};
   S.games.push({...S.game});
   S.downloadedGids.add(S.game.id);
-  S.curPit=null;S.bases={b1:null,b2:null,b3:null};S.outs=0;save();closeModal();r();toast('vs '+o+' '+(t==='P'?'연습':'정식')+'경기 시작!');
+  S.curPit=null;S.bases={b1:null,b2:null,b3:null};S.outs=0;S.inning=1;S.topBot='top';save();closeModal();r();toast('vs '+o+' '+(t==='P'?'연습':'정식')+'경기 시작!');
   if(S.scriptUrl&&navigator.onLine){
     pushGamesOnly().then(function(res){if(res.ok&&res.pushed)console.log('game auto-pushed');});
     lockGame(S.game.id);
