@@ -1094,6 +1094,7 @@ function rOCSel(mode){
   });
   h+='</div><div class="oclbl" style="margin-top:8px">아웃</div><div class="ocgrid">';
   OC_OUT.forEach(o=>{
+    if(isP&&o.id==='SH')return;
     h+='<button class="ocbtn" style="background:'+o.bg+';color:'+o.fg+'" onclick="'+(isP?'pitSelOC':'selOC')+'(\''+o.id+'\')">'+o.l+'</button>';
   });
   h+='</div></div>';
