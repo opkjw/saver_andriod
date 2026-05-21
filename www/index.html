@@ -176,7 +176,7 @@ tr:nth-child(even) td{background:var(--bg2)}
 .su-summary{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 18px;width:100%;text-align:left;font-size:14px;color:rgba(255,255,255,.8);line-height:2;margin-bottom:4px}
 .su-tip{background:rgba(255,255,255,.07);border-radius:12px;padding:13px 16px;width:100%;font-size:12px;color:rgba(255,255,255,.6);line-height:1.75;text-align:left;margin-top:8px}
 .su-connst{font-size:12px;color:rgba(255,255,255,.5);min-height:18px;text-align:center;margin-top:6px;width:100%}
-#login-overlay{position:fixed;inset:0;background:var(--navy);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#login-overlay{position:fixed;inset:0;background:var(--navy);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px 48px}
 .pin-wrap{width:100%;max-width:340px}
 .pin-logo{font-size:52px;text-align:center;margin-bottom:8px}
 .pin-title{font-size:22px;font-weight:700;color:#fff;text-align:center;margin-bottom:4px}
@@ -289,7 +289,7 @@ let S={
   pitBases:{b1:null,b2:null,b3:null},pitOuts:0,_pitScoreBase:null,
   pendingScores:[],runnerDecisions:{},
   // 데이터
-  game:null,gcnt:1,games:[],
+  teamId:null,game:null,gcnt:1,games:[],
   blog:[],pit_bf:[],pit_runs:[],
   // 동기화
   scriptUrl:"",scriptToken:"",lastSync:null,syncing:false,loading:false,statsLoading:false,logLoading:false,rosterDirty:false,syncedIds:new Set(),downloadedGids:new Set(),deletedGids:[],
@@ -305,6 +305,7 @@ function load(){
       const d=JSON.parse(raw);
       ['blog','pit_bf','pit_runs','games','game','gcnt','scriptUrl','scriptToken','lastSync','rosterDirty','deletedGids','schoolName','bases','outs','pitBases','pitOuts','masterUrl','teamName','teamLocked'].forEach(k=>{if(d[k]!==undefined)S[k]=d[k];});
       if(d.myPlayer!=null)S.myPlayer=parseInt(d.myPlayer)||null;
+      if(d.teamId)S.teamId=d.teamId;
       S.syncedIds=new Set(d.syncedIds||[]);
       // downloadedGids: 저장된 값 복원, 없으면 기존 로컬 레코드에서 bootstrap
       if(d.downloadedGids&&d.downloadedGids.length){
@@ -330,12 +331,36 @@ function save(){
     localStorage.setItem('bb_final',JSON.stringify({
       blog:S.blog,pit_bf:S.pit_bf,pit_runs:S.pit_runs,games:S.games,
       game:S.game,gcnt:S.gcnt,scriptUrl:S.scriptUrl,lastSync:S.lastSync,
-      syncedIds:[...S.syncedIds],downloadedGids:[...S.downloadedGids],roster:ROSTER,rosterDirty:S.rosterDirty,myPlayer:S.myPlayer,
+      syncedIds:[...S.syncedIds],downloadedGids:[...S.downloadedGids],roster:ROSTER,rosterDirty:S.rosterDirty,myPlayer:S.myPlayer,teamId:S.teamId,
       deletedGids:S.deletedGids,schoolName:S.schoolName,scriptToken:S.scriptToken,setupDone:S.setupDone,setupStep:S.setupStep,bases:S.bases,outs:S.outs,pitBases:S.pitBases,pitOuts:S.pitOuts,masterUrl:S.masterUrl,teamName:S.teamName,teamLocked:S.teamLocked,
     }));
   }catch(e){console.error(e);}
 }
 
+async function loadFromSupabase(){
+  if(!window.SupabaseClient||!S.teamId)return;
+  try{
+    S.loading=true;renderGHdr&&renderGHdr();
+    var data=await SB.fetchTeamData(S.teamId);
+    S.games=data.games;
+    S.blog=data.bat_log;
+    S.pit_bf=data.pit_bf;
+    S.pit_runs=data.pit_runs;
+    if(data.roster&&data.roster.length>0){parseRosterSiblings(data.roster);ROSTER.splice(0,ROSTER.length,...data.roster);}
+    if(data.teamName)S.schoolName=data.teamName;
+    // 현재 진행 경기 상태 복원
+    if(S.game){var fg=S.games.find(function(g){return g.id===S.game.id;});if(!fg||fg.status==='ended')S.game=null;else S.game=Object.assign({},S.game,fg);}
+    S.setupDone=true;
+    save();
+    S.loading=false;
+    r();
+    console.log('[SB] 데이터 로드 완료: 경기'+S.games.length+'건 타자'+S.blog.length+'건');
+  }catch(e){
+    S.loading=false;
+    console.warn('[SB] loadFromSupabase 오류',e);
+    r();
+  }
+}
 function parseRosterSiblings(roster){
   (roster||[]).forEach(function(p){
     if(!p.siblings||p.siblings===''||p.siblings===null){p.siblings=[];return;}
@@ -417,8 +442,8 @@ function batAgg(filtGids){
   const m={};
   for(const e of S.blog){
     if(filtGids&&!filtGids.has(e.gid))continue;
-    const k=e.pn;
-    if(!m[k])m[k]={name:k,no:e.pno,pa:0,ab:0,h:0,d2:0,d3:0,hr:0,bb:0,hbp:0,so:0,sf:0,rbi:0,run:0,sb:0,cs:0,gids:new Set()};
+    const k=e.pno;
+    if(!m[k]){const _p=ROSTER.find(function(x){return x.no===e.pno&&x.r==='b';})||ROSTER.find(function(x){return x.no===e.pno;})||{name:'#'+e.pno};m[k]={name:_p.name,no:e.pno,pa:0,ab:0,h:0,d2:0,d3:0,hr:0,bb:0,hbp:0,so:0,sf:0,rbi:0,run:0,sb:0,cs:0,gids:new Set()};}
     const t=m[k],s=paS(e.oc);
     for(const f of['pa','ab','h','d2','d3','hr','bb','hbp','so','sf'])t[f]+=s[f];
     t.rbi+=e.rbi||0;t.run+=e.run||0;t.sb+=e.sb||0;t.cs+=e.cs||0;
@@ -511,104 +536,120 @@ function renderLogin(){
   if(S.role){ol.style.display='none';return;}
   ol.style.display='flex';
   ol.innerHTML='<div class="pin-wrap">'
-    +'<div class="pin-logo">⚾</div>'
-    +'<div class="pin-title">모야모야-우리아이 야구 기록</div>'
-    +'<div style="margin-bottom:20px;text-align:center"><div style="font-size:13px;color:rgba(255,255,255,.6)">이메일과 비밀번호로 로그인하세요</div></div>'
-    +'<input class="pin-input" id="login-email" type="email" placeholder="이메일" autocomplete="email" style="margin-bottom:10px">'
-    +'<input class="pin-input" id="login-pw" type="password" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key===&apos;Enter&apos;)doLogin()">'
+    +'<div style="font-size:72px;text-align:center;margin-bottom:20px;line-height:1">⚾</div>'
+    +'<div style="font-size:48px;font-weight:900;color:#fff;text-align:center;letter-spacing:-1px;line-height:1.1;margin-bottom:4px">모야모야</div>'
+    +'<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.4);text-align:center;letter-spacing:6px;margin-bottom:36px">MOYAMOYA</div>'
+    +'<div style="font-size:24px;font-weight:800;color:#fff;text-align:center;line-height:1.35;margin-bottom:14px">모두의 야구 기록,<br>쉽고 스마트하게</div>'
+    +'<div style="font-size:14px;color:rgba(255,255,255,.55);text-align:center;line-height:1.8;margin-bottom:40px">선수별 타석·투구 기록부터<br>세이버매트릭스 통계까지<br>한 번에 관리하세요</div>'
     +'<div class="pin-err" id="pin-err"></div>'
-    +'<button class="pin-btn primary" onclick="doLogin()">로그인</button>'
-    +'<button class="pin-btn" onclick="showSignupView()" style="margin-top:8px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)">계정 만들기</button>'
+    +'<button class="pin-btn" onclick="doGoogleLogin()" style="background:#fff;color:#3c4043;border:none;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:15px">'
+    +'<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>'
+    +'Google로 로그인</button>'
     +'</div>';
-  setTimeout(function(){var el=document.getElementById('login-email');if(el)el.focus();},100);
 }
-async function doLogin(){
-  var email=(document.getElementById('login-email')||{}).value||'';
-  var pw=(document.getElementById('login-pw')||{}).value||'';
+async function _applyGoogleSession(errEl){
+  var profile=await SB.getProfile();
+  var appRole=SB.mapRole(profile?profile.role:null);
+  var teamId=profile?profile.team_id:null;
+  sessionStorage.setItem('bb_role',appRole);
+  if(appRole!=='user'){S.sprayPlayer=null;S.pitFocus=null;}
+  S.role=appRole;S.teamId=teamId;S.setupDone=true;save();
+  if(teamId){document.getElementById('login-overlay').style.display='none';loadFromSupabase();}
+  else{showInviteCodeView();}
+}
+async function doGoogleLogin(){
   var errEl=document.getElementById('pin-err');
-  if(!window.SupabaseClient){localLogin();return;}
-  if(!email||!pw){if(errEl)errEl.textContent='이메일과 비밀번호를 입력해주세요.';return;}
-  if(errEl)errEl.textContent='로그인 중...';
-  try{
-    await SB.signIn(email,pw);
-    var profile=await SB.getProfile();
-    var role=SB.mapRole(profile?profile.role:null);
-    sessionStorage.setItem('bb_role',role);
-    if(role!=='user'){S.sprayPlayer=null;S.pitFocus=null;}
-    S.role=role;
-    document.getElementById('login-overlay').style.display='none';
-    r();
-  }catch(e){
-    if(errEl)errEl.textContent=e.message||'로그인 실패. 이메일/비밀번호를 확인해주세요.';
+  if(!window.SupabaseClient){if(errEl)errEl.textContent='Supabase 연결 중입니다. 잠시 후 다시 시도해주세요.';return;}
+  if(errEl)errEl.textContent='';
+  // 네이티브 Google Sign-In 시도
+  if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.GoogleAuth){
+    try{
+      var result=await Capacitor.Plugins.GoogleAuth.signIn();
+      if(!result||!result.idToken)throw new Error('ID 토큰 없음');
+      var signInRes=await window.SupabaseClient.auth.signInWithIdToken({provider:'google',token:result.idToken});
+      if(signInRes.error)throw signInRes.error;
+      await _applyGoogleSession(errEl);
+      return;
+    }catch(e){
+      var code=e.code||e.message||'';
+      console.warn('[GoogleAuth] 네이티브 로그인 실패 (code='+code+'), OAuth fallback 시도',e);
+      // Capacitor가 이전 call을 정리할 시간을 준 뒤 fallback 실행
+      setTimeout(async function(){
+        try{
+          var url=await SB.getGoogleOAuthUrl();
+          if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Browser){
+            await Capacitor.Plugins.Browser.open({url:url,presentationStyle:'popover'});
+          }else{
+            window.open(url,'_blank');
+          }
+        }catch(e2){
+          console.warn('[GoogleAuth] OAuth fallback 실패',e2);
+          if(errEl)errEl.textContent=e2.message||'Google 로그인 실패';
+        }
+      },300);
+      return;
+    }
   }
 }
-function localLogin(){
-  S.sprayPlayer=null;S.pitFocus=null;
-  sessionStorage.setItem('bb_role','admin');
-  S.role='admin';
-  document.getElementById('login-overlay').style.display='none';
-  r();
+// OAuth fallback 콜백 처리 (savermatrix://auth 딥링크)
+document.addEventListener('supabase:ready',function(){
+  if(!window.Capacitor||!Capacitor.Plugins||!Capacitor.Plugins.App)return;
+  Capacitor.Plugins.App.addListener('appUrlOpen',async function(data){
+    var url=data.url||'';
+    if(!url.startsWith('savermatrix://auth'))return;
+    try{
+      if(Capacitor.Plugins.Browser)Capacitor.Plugins.Browser.close();
+      var hash=url.indexOf('#')>=0?url.split('#')[1]:url.split('?')[1]||'';
+      var params=new URLSearchParams(hash);
+      var accessToken=params.get('access_token');
+      var refreshToken=params.get('refresh_token');
+      if(!accessToken||!refreshToken){console.warn('[OAuth] 토큰 없음',url);return;}
+      await window.SupabaseClient.auth.setSession({access_token:accessToken,refresh_token:refreshToken});
+      await _applyGoogleSession(null);
+    }catch(e){console.warn('[OAuth] 콜백 처리 오류',e);}
+  });
+});
+function showInviteCodeView(){
+  var ol=document.getElementById('login-overlay');
+  if(!ol)return;
+  ol.style.display='flex';
+  ol.innerHTML='<div class="pin-wrap">'
+    +'<div class="pin-logo">🔑</div>'
+    +'<div class="pin-title">초대 코드 입력</div>'
+    +'<div style="margin-bottom:20px;text-align:center"><div style="font-size:13px;color:rgba(255,255,255,.6)">감독님께 받은 초대 코드를 입력해주세요</div></div>'
+    +'<input class="pin-input" id="ic-code" type="text" placeholder="초대 코드" style="text-transform:uppercase;letter-spacing:3px;text-align:center;font-size:20px;font-weight:700;margin-bottom:10px" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key===&apos;Enter&apos;)doApplyInviteCode()">'
+    +'<div class="pin-err" id="ic-err"></div>'
+    +'<button class="pin-btn primary" onclick="doApplyInviteCode()">확인</button>'
+    +'<button class="pin-btn" onclick="doLogout()" style="margin-top:8px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15);font-size:13px">다른 계정으로 로그아웃</button>'
+    +'</div>';
+  setTimeout(function(){var el=document.getElementById('ic-code');if(el)el.focus();},100);
+}
+async function doApplyInviteCode(){
+  var code=((document.getElementById('ic-code')||{}).value||'').trim().toUpperCase();
+  var errEl=document.getElementById('ic-err');
+  if(!code){if(errEl)errEl.textContent='초대 코드를 입력해주세요.';return;}
+  if(errEl)errEl.textContent='확인 중...';
+  try{
+    var result=await SB.applyInviteCode(code);
+    var appRole=SB.mapRole(result.role);
+    sessionStorage.setItem('bb_role',appRole);
+    if(appRole!=='user'){S.sprayPlayer=null;S.pitFocus=null;}
+    S.role=appRole;
+    S.teamId=result.teamId;
+    S.setupDone=true;
+    save();
+    document.getElementById('login-overlay').style.display='none';
+    toast('✓ 팀에 참가했습니다!','ok');
+    loadFromSupabase();
+  }catch(e){
+    if(errEl)errEl.textContent=e.message||'코드 확인 실패. 다시 시도해주세요.';
+  }
 }
 async function doLogout(){
   sessionStorage.removeItem('bb_role');
   S.role=null;
   if(window.SB)await SB.signOut().catch(function(){});
   renderLogin();
-}
-function showSignupView(){
-  var ol=document.getElementById('login-overlay');
-  if(!ol)return;
-  ol.innerHTML='<div class="pin-wrap">'
-    +'<div class="pin-logo">✏️</div>'
-    +'<div class="pin-title">계정 만들기</div>'
-    +'<div style="margin-bottom:16px;text-align:center"><div style="font-size:13px;color:rgba(255,255,255,.6)">팀 초대 코드는 감독님께 받으세요</div></div>'
-    +'<input class="pin-input" id="su-email" type="email" placeholder="이메일" autocomplete="email" style="margin-bottom:10px">'
-    +'<input class="pin-input" id="su-pw" type="password" placeholder="비밀번호 (8자 이상)" autocomplete="new-password" style="margin-bottom:10px">'
-    +'<select class="pin-input" id="su-role" style="margin-bottom:10px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3)">'
-    +'<option value="parent">👨‍👩‍👦 학부모</option>'
-    +'<option value="recorder">📋 기록자</option>'
-    +'<option value="admin">👨‍💼 감독/코치</option>'
-    +'</select>'
-    +'<input class="pin-input" id="su-team" type="text" placeholder="팀 초대 코드 (선택 사항)" style="margin-bottom:10px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">'
-    +'<div class="pin-err" id="su-err"></div>'
-    +'<button class="pin-btn primary" onclick="doSignup()">가입하기</button>'
-    +'<button class="pin-btn" onclick="renderLogin()" style="margin-top:8px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)">← 로그인으로</button>'
-    +'</div>';
-  setTimeout(function(){var el=document.getElementById('su-email');if(el)el.focus();},100);
-}
-async function doSignup(){
-  var email=(document.getElementById('su-email')||{}).value||'';
-  var pw=(document.getElementById('su-pw')||{}).value||'';
-  var role=(document.getElementById('su-role')||{}).value||'parent';
-  var teamCode=((document.getElementById('su-team')||{}).value||'').trim().toUpperCase();
-  var errEl=document.getElementById('su-err');
-  if(!email||!pw){if(errEl)errEl.textContent='이메일과 비밀번호를 입력해주세요.';return;}
-  if(pw.length<8){if(errEl)errEl.textContent='비밀번호는 8자 이상이어야 합니다.';return;}
-  if(errEl)errEl.textContent='가입 처리 중...';
-  try{
-    var result=await SB.signUp(email,pw,role,teamCode);
-    if(!result.session){
-      // 이메일 인증 필요
-      var ol=document.getElementById('login-overlay');
-      if(ol)ol.innerHTML='<div class="pin-wrap">'
-        +'<div class="pin-logo">📧</div>'
-        +'<div class="pin-title">이메일을 확인해주세요</div>'
-        +'<div style="text-align:center;color:rgba(255,255,255,.8);font-size:14px;line-height:1.8;margin-bottom:24px">'
-        +esc(email)+'<br>로 인증 메일을 발송했습니다.<br>확인 후 로그인해주세요.</div>'
-        +'<button class="pin-btn primary" onclick="renderLogin()">로그인하기</button>'
-        +'</div>';
-      return;
-    }
-    var appRole=SB.mapRole(role);
-    sessionStorage.setItem('bb_role',appRole);
-    if(appRole!=='user'){S.sprayPlayer=null;S.pitFocus=null;}
-    S.role=appRole;
-    document.getElementById('login-overlay').style.display='none';
-    toast('✓ 가입 완료! 환영합니다','ok');
-    r();
-  }catch(e){
-    if(errEl)errEl.textContent=e.message||'가입 실패. 다시 시도해주세요.';
-  }
 }
 
 // ── 팀 레지스트리 — 초대 링크 처리 ──────────────────────────
@@ -1516,10 +1557,11 @@ function rLog(){
         if(e.zone)ex.push('📍'+e.zone);
         var sy=S.syncedIds.has(e.id);
         var isMyChild=myHighlight&&Number(e.pno)===myHighlight;
+        var _bp=ROSTER.find(function(x){return x.no===e.pno;})||{name:'#'+e.pno};
         h+='<div class="logitem" style="'+(isMyChild?'background:#EBF4FF;border-left:3px solid var(--navy);':'')+'"">'
           +'<div class="logbadge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:10px">'+oc.l+'</div>'
           +'<div style="flex:1;min-width:0">'
-          +'<div class="logplayer">'+esc(e.pn)+(isMyChild?' <span style="font-size:10px;background:var(--navy);color:#fff;padding:1px 5px;border-radius:3px;font-weight:700">★ 우리 아이</span>':'')+' <span style="font-size:10px;color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
+          +'<div class="logplayer">'+esc(_bp.name)+(isMyChild?' <span style="font-size:10px;background:var(--navy);color:#fff;padding:1px 5px;border-radius:3px;font-weight:700">★ 우리 아이</span>':'')+' <span style="font-size:10px;color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
           +'<div class="logdetail">'+(ex.length?ex.join(' · '):'—')+'</div>'
           +'</div>'
           +'<button onclick="showEditBatModal(\''+e.id+'\')" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 8px;font-size:11px;color:var(--txt2);cursor:pointer;margin-right:4px;font-family:inherit">✏</button>'
@@ -1594,10 +1636,11 @@ function rLog(){
     if(pitView==='seq'){
       pbf.slice().reverse().forEach(function(e){
         var oc=ocInfo(e.oc);var sy=S.syncedIds.has(e.id);
+        var _pp=ROSTER.find(function(x){return x.no===e.pno;})||{name:'#'+e.pno};
         h+='<div class="logitem">'
           +'<div class="logbadge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:10px">'+oc.l+'</div>'
           +'<div style="flex:1;min-width:0">'
-          +'<div class="logplayer">'+esc(e.pn||('#'+e.pno))+' <span style="font-size:10px;color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
+          +'<div class="logplayer">'+esc(_pp.name)+' <span style="font-size:10px;color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
           +'</div>'
           +'<button onclick="showEditPitBfModal(\''+e.id+'\')" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:7px 10px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit;min-height:36px">✏</button>'
           +'<button onclick="del(\'pbf\',\''+e.id+'\')" style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:18px;line-height:1;min-height:36px;min-width:36px">✕</button>'
@@ -2052,12 +2095,7 @@ function rSprayChart(pno){
   var pno2=Number(pno);
   var roster=ROSTER.find(function(x){return Number(x.no)===pno2;});
   var playerName=roster?roster.name:('#'+pno2);
-  // pno 기반 1차 검색
   var blog=S.blog.filter(function(e){return Number(e.pno)===pno2;});
-  // pno 매칭 없으면 이름 기반 fallback
-  if(blog.length===0&&roster){
-    blog=S.blog.filter(function(e){return e.pn===roster.name;});
-  }
   var entries=blog.filter(function(e){return e.zone;});
   console.log('[SprayChart] pno='+pno2+' name='+playerName+' blog='+blog.length+' zone='+entries.length);
   var cx=175,cy=200,r=162;
@@ -2197,9 +2235,7 @@ function rSettings(){
   // ── 역할 배지 (role 설정 여부와 무관하게 항상 표시, URL 없으면 로그아웃 대신 안내)
   const roleBadge='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);padding:11px 14px;margin-bottom:10px">'
     +'<div style="font-size:12px;color:var(--txt2)">접속 모드 <span style="font-weight:700;color:'+roleColor+';margin-left:6px">'+roleLbl+'</span></div>'
-    +(S.scriptUrl
-      ?'<button onclick="doLogout()" style="font-size:12px;color:var(--txt2);background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 12px;min-height:34px;cursor:pointer;font-family:inherit">로그아웃</button>'
-      :'<span style="font-size:11px;color:var(--txt2)">URL 연결 시 PIN 로그인</span>')
+    +'<button onclick="doLogout()" style="font-size:12px;color:var(--txt2);background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 12px;min-height:34px;cursor:pointer;font-family:inherit">로그아웃</button>'
     +'</div>';
 
   // ── 첫 방문 가이드 (관리자 + URL 미설정)
@@ -2242,12 +2278,10 @@ function rSettings(){
     +roleBadge
     +dupWarn
     +setupGuide
+    +''
     +'<div class="cfgcard">'
     +'<div class="cfgtitle">🏫 학교 / 팀 정보</div>'
-    +(isAdmin
-      ?'<div style="display:flex;gap:8px"><input class="cfginput" id="school-input" placeholder="예: 서울초등학교" maxlength="30" value="'+esc(S.schoolName)+'" style="flex:1;margin-bottom:0"><button class="cfgbtn pr" onclick="saveSchoolName()" style="white-space:nowrap;flex-shrink:0">✓ 저장</button></div>'
-      :'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+(S.schoolName||'(미설정)')+'</div>'
-      +(S.teamLocked?'<div style="font-size:12px;color:var(--txt);margin-top:6px">🔒 팀 변경은 관리자에게 초대 링크를 요청하세요</div>':''))
+    +'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+(S.schoolName||'(미설정)')+'</div>'
     +'</div>'
     +(S.scriptUrl
       ?'<div class="cfgcard">'
@@ -2327,6 +2361,7 @@ function endGame(){
   var gid=S.game.id;
   var gi=S.games.findIndex(function(x){return x.id===gid;});
   if(gi>=0){S.games[gi].status='ended';S.syncedIds.delete('g_'+gid);}
+  if(window.SupabaseClient&&S.teamId){var eg=S.games[gi]||{id:gid,opp:S.game?S.game.opp:'?',date:S.game?S.game.date:'',type:'R',no:1,status:'ended'};SB.upsertGame(Object.assign({},eg,{status:'ended'}),S.teamId).catch(function(){});}
   S.game=null;S.curPit=null;S.bs=0;S.batSub=0;S.ps=0;S.undoStack=[];S.pitUndoStack=[];
   save();r();toast('경기 종료 — 동기화 중...');
   unlockGame(gid);
@@ -2447,7 +2482,9 @@ function saveBat(){
   S.blog.push({id:newId,gid:S.game.id,date:S.game.date,opp:S.game.opp,
     pno:p.no,pn:p.name,oc:S.bo,rbi:S.brbi,run:0,sb:S.bsb,cs:S.bcs,zone:S.bzone});
   applyBaseAdvancement(S.bo,p.no);
-  save();toast(p.name+' '+ocInfo(S.bo).l+' 저장!','ok');S.bs=0;S.bzone=null;r();
+  save();
+  if(window.SupabaseClient&&S.teamId&&S.game){var _gid=S.game.id;SB.upsertGame(S.game,S.teamId).then(function(){return SB.upsertBatLog(S.blog.filter(function(e){return e.gid===_gid;}),S.teamId);}).catch(function(e){console.warn('[SB]bat',e);});}
+  toast(p.name+' '+ocInfo(S.bo).l+' 저장!','ok');S.bs=0;S.bzone=null;r();
 }
 function undoLast(){
   if(!S.undoStack||!S.undoStack.length){toast('취소할 기록이 없습니다','err');return;}
@@ -2493,6 +2530,7 @@ function pitSelOC(id){
   var prevRuns=S.pit_runs.length;
   applyPitBaseAdv(id);
   save();
+  if(window.SupabaseClient&&S.teamId&&S.game){var _gid2=S.game.id;SB.upsertGame(S.game,S.teamId).then(function(){return SB.upsertPitBf(S.pit_bf.filter(function(e){return e.gid===_gid2;}),S.teamId);}).then(function(){return SB.upsertPitRuns(S.pit_runs.filter(function(e){return e.gid===_gid2;}),S.teamId);}).catch(function(e){console.warn('[SB]pit',e);});}
   var newRuns=S.pit_runs.length-prevRuns;
   const st=calcPitStats(S.curPit,S.game.id);
   var msg=p.name+' '+ocInfo(id).l+' · '+st.ipd+'이닝 '+st.k+'K';
@@ -2680,9 +2718,10 @@ function addPitRun(earned){
   const p=ROSTER.find(x=>x.no===S.curPit);
   pushPitUndo(snapPitSt(p.name+' '+(earned?'자책점':'비자책점')+' (수동)'));
   S.pit_runs.push({id:UID(),gid:S.game.id,pno:p.no,pn:p.name,earned});
+  if(window.SupabaseClient&&S.teamId&&S.game){SB.upsertPitRuns(S.pit_runs.filter(function(e){return e.gid===S.game.id;}),S.teamId).catch(function(){});}
   save();toast(p.name+' '+(earned?'자책점':'비자책점'),'ok');renderGHdr();renderCt();
 }
-function delPitRun(id){S.pit_runs=S.pit_runs.filter(e=>e.id!==id);save();renderCt();}
+function delPitRun(id){S.pit_runs=S.pit_runs.filter(e=>e.id!==id);save();renderCt();if(window.SupabaseClient)SB.deletePitRun(id).catch(function(){});}
 function rBaseDiagram(){
   if(!S.game)return'';
   function baseSlot(key,label){
@@ -2953,7 +2992,9 @@ function delGame(gid){
   if(S.game&&S.game.id===gid)S.game=null;
   if(!S.deletedGids.includes(gid))S.deletedGids.push(gid);
   S.syncedIds.delete('g_'+gid);
-  save();toast(label+' 삭제됨 (다음 동기화 시 서버에서도 삭제)','ok');r();
+  save();
+  if(window.SupabaseClient)SB.deleteGame(gid).catch(function(){});
+  toast(label+' 삭제됨 (다음 동기화 시 서버에서도 삭제)','ok');r();
 }
 function checkDuplicateGames(){
   var groups={};
@@ -3037,9 +3078,10 @@ function renderEditModal(){
   const e=isBat?S.blog.find(x=>x.id===es.id):isPitRun?S.pit_runs.find(x=>x.id===es.id):S.pit_bf.find(x=>x.id===es.id);
   if(!e)return;
   const isBIP=BIP_OC.includes(es.oc);
+  var _ep=ROSTER.find(function(x){return x.no===e.pno;})||{name:'#'+e.pno};
   let h='<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">'
     +'<h3>'+(isBat?'타자':'투수')+' 기록 편집</h3>'
-    +'<div style="font-size:12px;color:var(--txt2);margin-bottom:12px">'+esc(e.pn)+' · '+esc(e.date)+' vs '+esc(e.opp)+'</div>';
+    +'<div style="font-size:12px;color:var(--txt2);margin-bottom:12px">'+esc(_ep.name)+' · '+esc(e.date)+' vs '+esc(e.opp)+'</div>';
   if(isPitRun){
     h+='<div class="em-lbl">실점 종류</div>'
       +'<div style="display:flex;gap:10px;margin-bottom:10px">'
@@ -3089,7 +3131,9 @@ function confirmEditEntry(){
     const idx=S.pit_runs.findIndex(x=>x.id===es.id);
     if(idx>=0){S.pit_runs[idx]={...S.pit_runs[idx],earned:es.earned};S.syncedIds.delete(es.id);}
   }
-  save();closeModal();renderCt();toast('수정 완료 — 재동기화 필요','ok');
+  save();closeModal();
+  if(window.SupabaseClient&&S.teamId){if(es.type==='bat'){var be=S.blog.find(function(x){return x.id===es.id;});if(be)SB.upsertBatLog([be],S.teamId).catch(function(){});}else if(es.type==='pitbf'){var pbe=S.pit_bf.find(function(x){return x.id===es.id;});if(pbe)SB.upsertPitBf([pbe],S.teamId).catch(function(){});}else if(es.type==='pitrun'){var pre=S.pit_runs.find(function(x){return x.id===es.id;});if(pre)SB.upsertPitRuns([pre],S.teamId).catch(function(){});}}
+  renderCt();toast('수정 완료 — 재동기화 필요','ok');
 }
 
 // ── 선수 관리 ─────────────────────────────────────────────
@@ -3154,13 +3198,17 @@ function confirmEditPlayer(no,role){
   if(!nm||!np){toast('이름과 포지션을 입력해주세요','err');return;}
   const idx=ROSTER.findIndex(x=>x.no===no&&x.r===role);
   if(idx>=0)ROSTER[idx]={...ROSTER[idx],no:isNaN(nn)?no:nn,name:nm,pos:np};
-  S.rosterDirty=true;save();closeModal();r();toast(nm+' 저장 완료','ok');
+  S.rosterDirty=true;save();closeModal();
+  if(window.SupabaseClient&&S.teamId)SB.upsertRoster(ROSTER,S.teamId).catch(function(){});
+  r();toast(nm+' 저장 완료','ok');
 }
 function deletePlayer(no,role){
   if(!confirm('이 선수를 삭제하시겠습니까?'))return;
   const idx=ROSTER.findIndex(x=>x.no===no&&x.r===role);
   if(idx>=0)ROSTER.splice(idx,1);
-  S.rosterDirty=true;save();closeModal();r();toast('삭제 완료');
+  S.rosterDirty=true;save();closeModal();
+  if(window.SupabaseClient&&S.teamId)SB.upsertRoster(ROSTER,S.teamId).catch(function(){});
+  r();toast('삭제 완료');
 }
 function showAddPlayerModal(){
   const type=S.rosterSub===0?'b':'p';
@@ -3464,6 +3512,7 @@ function doCreateGame(d,o,t){
   S.games.push({...S.game});
   S.downloadedGids.add(S.game.id);
   S.curPit=null;S.bases={b1:null,b2:null,b3:null};S.outs=0;S.inning=1;S.topBot='top';save();closeModal();r();toast('vs '+o+' '+(t==='P'?'연습':'정식')+'경기 시작!');
+  if(window.SupabaseClient&&S.teamId){SB.upsertGame(S.game,S.teamId).catch(function(e){console.warn('[SB]game',e);});}
   if(S.scriptUrl&&navigator.onLine){
     pushGamesOnly().then(function(res){if(res.ok&&res.pushed)console.log('game auto-pushed');});
     lockGame(S.game.id);
@@ -3765,20 +3814,25 @@ document.addEventListener('keydown',function(e){
 });
 // Supabase 세션 복원 — 앱 재시작 시 JWT가 유효하면 자동 로그인
 document.addEventListener('supabase:ready',async function(){
-  if(S.role)return;
+  S.setupDone=true;
+  if(S.role){if(S.teamId)loadFromSupabase();else showInviteCodeView();return;}
   try{
     var sess=await SB.getSession();
     if(sess){
       var profile=await SB.getProfile();
       if(profile){
         var appRole=SB.mapRole(profile.role);
+        var teamId=profile.team_id;
         S.role=appRole;
+        S.teamId=teamId;
         sessionStorage.setItem('bb_role',appRole);
-        r();
-      }
-    }
-  }catch(e){console.warn('[Supabase] 세션 복원 실패',e);}
+        save();
+        if(teamId)loadFromSupabase();else showInviteCodeView();
+      }else{r();}
+    }else{r();}
+  }catch(e){console.warn('[Supabase] 세션 복원 실패',e);r();}
 });
+
 load();
 if(S.game&&S.game.id&&S.scriptUrl)lockGame(S.game.id);
 r();

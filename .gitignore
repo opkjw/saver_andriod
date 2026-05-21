@@ -1,0 +1,25 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Android 빌드 산출물
+android/app/build/
+android/.gradle/
+android/build/
+*.apk
+*.aab
+*.keystore
+
+# Capacitor 자동생성 (npx cap sync로 재생성 가능)
+www/capacitor.js
+android/app/src/main/assets/public/
+
+# 환경변수 (Supabase key 포함)
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Claude Code 메모리 (로컬 전용)
+.claude/

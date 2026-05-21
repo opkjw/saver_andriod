@@ -1,0 +1,32 @@
+{
+  "name": "savermatrix-android",
+  "version": "1.0.0",
+  "description": "야구 세이버매트릭스 앱 — Android (Capacitor + Supabase)",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo '[build] www/index.html is the Android source — edit it directly'",
+    "sync": "npm run build && npx cap sync android",
+    "apk": "npm run sync && cd android && JAVA_HOME=/opt/homebrew/opt/openjdk@21 ANDROID_HOME=/opt/homebrew/share/android-commandlinetools ./gradlew assembleDebug",
+    "apk:release": "npm run sync && cd android && JAVA_HOME=/opt/homebrew/opt/openjdk@21 ANDROID_HOME=/opt/homebrew/share/android-commandlinetools ./gradlew assembleRelease",
+    "open": "npx cap open android"
+  },
+  "keywords": [
+    "baseball",
+    "sabermetrics",
+    "android",
+    "capacitor"
+  ],
+  "author": "opkjw",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@supabase/supabase-js": "^2.106.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
