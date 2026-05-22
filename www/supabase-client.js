@@ -74,22 +74,10 @@ var SB = {
     if (!client) throw new Error('Supabase 미초기화');
     var code = inviteCode.toUpperCase();
     if (!/^[A-Z0-9]{4,20}$/.test(code)) throw new Error('올바르지 않은 초대 코드 형식입니다');
-    var { data: team, error: teamErr } = await client.from('teams')
-      .select('id, invite_code, invite_code_recorder, invite_code_admin')
-      .or('invite_code.eq.' + code + ',invite_code_recorder.eq.' + code + ',invite_code_admin.eq.' + code)
-      .maybeSingle();
-    if (teamErr) throw new Error('팀 조회 오류: ' + teamErr.message);
-    if (!team) throw new Error('유효하지 않은 초대 코드입니다');
-    var role = 'parent';
-    if (team.invite_code_recorder === code) role = 'recorder';
-    else if (team.invite_code_admin === code) role = 'admin';
-    var { data: sessData } = await client.auth.getSession();
-    if (!sessData || !sessData.session) throw new Error('로그인 세션이 없습니다');
-    var uid = sessData.session.user.id;
-    var { error: upErr } = await client.from('profiles')
-      .upsert({ id: uid, role: role, team_id: team.id }, { onConflict: 'id' });
-    if (upErr) throw new Error('프로필 저장 실패: ' + upErr.message);
-    return { role: role, teamId: team.id };
+    var { data, error } = await client.rpc('apply_invite_code', { p_code: code });
+    if (error) throw new Error('초대 코드 처리 오류: ' + error.message);
+    if (data && data.error) throw new Error(data.error);
+    return { role: data.role, teamId: data.teamId };
   },
 
 

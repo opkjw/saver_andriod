@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baseball-app-v20260522f';
+const CACHE_NAME = 'baseball-app-v20260522g';
 
 self.addEventListener('install', event => {
   event.waitUntil(
