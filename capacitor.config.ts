@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.opkjw.savermatrix',
-  appName: '야구기록',
+  appName: '모야모야',
   webDir: 'www',
   server: {
     androidScheme: 'https',   // Service Worker 동작을 위해 https scheme 사용

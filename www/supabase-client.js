@@ -73,17 +73,22 @@ var SB = {
     var client = window.SupabaseClient;
     if (!client) throw new Error('Supabase 미초기화');
     var code = inviteCode.toUpperCase();
-    var { data: team } = await client.from('teams')
+    if (!/^[A-Z0-9]{4,20}$/.test(code)) throw new Error('올바르지 않은 초대 코드 형식입니다');
+    var { data: team, error: teamErr } = await client.from('teams')
       .select('id, invite_code, invite_code_recorder, invite_code_admin')
       .or('invite_code.eq.' + code + ',invite_code_recorder.eq.' + code + ',invite_code_admin.eq.' + code)
       .maybeSingle();
+    if (teamErr) throw new Error('팀 조회 오류: ' + teamErr.message);
     if (!team) throw new Error('유효하지 않은 초대 코드입니다');
     var role = 'parent';
     if (team.invite_code_recorder === code) role = 'recorder';
     else if (team.invite_code_admin === code) role = 'admin';
     var { data: sessData } = await client.auth.getSession();
     if (!sessData || !sessData.session) throw new Error('로그인 세션이 없습니다');
-    await client.from('profiles').update({ role: role, team_id: team.id }).eq('id', sessData.session.user.id);
+    var uid = sessData.session.user.id;
+    var { error: upErr } = await client.from('profiles')
+      .upsert({ id: uid, role: role, team_id: team.id }, { onConflict: 'id' });
+    if (upErr) throw new Error('프로필 저장 실패: ' + upErr.message);
     return { role: role, teamId: team.id };
   },
 
@@ -150,6 +155,7 @@ var SB = {
   upsertGame: async function (game, teamId) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     var row = {
       id: game.id,
       team_id: teamId,
@@ -167,6 +173,7 @@ var SB = {
   deleteGame: async function (gid) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     var { error } = await client.from('games').delete().eq('id', gid);
     if (error) console.warn('[SB] deleteGame 오류', error);
   },
@@ -175,6 +182,7 @@ var SB = {
   upsertBatLog: async function (entries, teamId) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     if (!entries || !entries.length) return;
     var rows = entries.map(function (e) {
       return { id: e.id, team_id: teamId, game_id: e.gid, player_no: e.pno, oc: e.oc, zone: e.zone, run: e.run, rbi: e.rbi, sb: e.sb, cs: e.cs };
@@ -187,6 +195,7 @@ var SB = {
   deleteBatLog: async function (id) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     var { error } = await client.from('bat_log').delete().eq('id', id);
     if (error) console.warn('[SB] deleteBatLog 오류', error);
   },
@@ -195,6 +204,7 @@ var SB = {
   upsertPitBf: async function (entries, teamId) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     if (!entries || !entries.length) return;
     var rows = entries.map(function (e) {
       return { id: e.id, team_id: teamId, game_id: e.gid, player_no: e.pno, oc: e.oc };
@@ -207,6 +217,7 @@ var SB = {
   deletePitBf: async function (id) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     var { error } = await client.from('pit_bf').delete().eq('id', id);
     if (error) console.warn('[SB] deletePitBf 오류', error);
   },
@@ -215,6 +226,7 @@ var SB = {
   upsertPitRuns: async function (entries, teamId) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     if (!entries || !entries.length) return;
     var rows = entries.map(function (e) {
       return { id: e.id, team_id: teamId, game_id: e.gid, player_no: e.pno, earned: e.earned };
@@ -227,6 +239,7 @@ var SB = {
   deletePitRun: async function (id) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     var { error } = await client.from('pit_runs').delete().eq('id', id);
     if (error) console.warn('[SB] deletePitRun 오류', error);
   },
@@ -235,6 +248,7 @@ var SB = {
   upsertRoster: async function (players, teamId) {
     var client = window.SupabaseClient;
     if (!client) return;
+    if (window.PERM && window.PERM.parent) return;
     if (!players || !players.length) return;
     var rows = players.map(function (p) {
       return { team_id: teamId, no: p.no, name: p.name, role: p.r || 'b', pos: p.pos || null, siblings: p.siblings || [] };
