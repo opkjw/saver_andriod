@@ -113,6 +113,54 @@ var SB = {
     await window.SupabaseClient.auth.signOut();
   },
 
+  _channel: null,
+
+  /** Realtime 구독 시작
+   *  onGameUpdate(gameRow)        — games UPDATE 이벤트
+   *  onRecordInsert(table, row)   — bat_log/pit_bf/pit_runs INSERT (null 이면 미구독)
+   */
+  startRealtime: function (teamId, onGameUpdate, onRecordInsert, onBroadcastReceive) {
+    var client = window.SupabaseClient;
+    if (!client || !teamId) return;
+    SB.stopRealtime();
+    var ch = client.channel('team-' + teamId);
+    ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'team_id=eq.' + teamId },
+      function (payload) { if (onGameUpdate) onGameUpdate(payload.new); });
+    if (onRecordInsert) {
+      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bat_log', filter: 'team_id=eq.' + teamId },
+        function (payload) { onRecordInsert('bat_log', payload.new); });
+      ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bat_log', filter: 'team_id=eq.' + teamId },
+        function (payload) { onRecordInsert('bat_log_update', payload.new); });
+      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pit_bf', filter: 'team_id=eq.' + teamId },
+        function (payload) { onRecordInsert('pit_bf', payload.new); });
+      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pit_runs', filter: 'team_id=eq.' + teamId },
+        function (payload) { onRecordInsert('pit_runs', payload.new); });
+    }
+    if (onBroadcastReceive) {
+      ch.on('broadcast', { event: 'game_state' }, function (payload) {
+        if (payload && payload.payload) onBroadcastReceive(payload.payload);
+      });
+    }
+    ch.subscribe(function (status) { console.log('[Realtime]', status); });
+    SB._channel = ch;
+  },
+
+  /** 현재 베이스/이닝 상태를 채널에 브로드캐스트 */
+  broadcastGameState: function (state) {
+    if (!SB._channel) return;
+    SB._channel.send({ type: 'broadcast', event: 'game_state', payload: state })
+      .catch(function (e) { console.warn('[Realtime broadcast]', e); });
+  },
+
+  /** Realtime 구독 해제 */
+  stopRealtime: function () {
+    if (SB._channel && window.SupabaseClient) {
+      window.SupabaseClient.removeChannel(SB._channel);
+      SB._channel = null;
+      console.log('[Realtime] 구독 해제');
+    }
+  },
+
   /** 팀 데이터 fetch — DB 필드를 앱 필드로 매핑 */
   fetchTeamData: async function (teamId) {
     var client = window.SupabaseClient;

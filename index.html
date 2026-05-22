@@ -371,6 +371,7 @@ async function loadFromSupabase(){
     S.setupDone=true;
     save();
     S.loading=false;
+    startRealtime();
     r();
     console.log('[SB] 데이터 로드 완료: 경기'+S.games.length+'건 타자'+S.blog.length+'건');
   }catch(e){
@@ -378,6 +379,92 @@ async function loadFromSupabase(){
     console.warn('[SB] loadFromSupabase 오류',e);
     r();
   }
+}
+
+function startRealtime(){
+  if(!window.SupabaseClient||!S.teamId)return;
+  var onRecordInsert=PERM.parent?function(table,row){
+    if(table==='bat_log'){
+      if(S.blog.some(function(e){return e.id===row.id;}))return;
+      S.blog.push({id:row.id,gid:row.game_id,pno:row.player_no,oc:row.oc,zone:row.zone||null,run:row.run||0,rbi:row.rbi||0,sb:row.sb||0,cs:row.cs||0});
+      S.syncedIds.add(row.id);
+    }else if(table==='pit_bf'){
+      if(S.pit_bf.some(function(e){return e.id===row.id;}))return;
+      S.pit_bf.push({id:row.id,gid:row.game_id,pno:row.player_no,oc:row.oc});
+      S.syncedIds.add(row.id);
+    }else if(table==='pit_runs'){
+      if(S.pit_runs.some(function(e){return e.id===row.id;}))return;
+      S.pit_runs.push({id:row.id,gid:row.game_id,pno:row.player_no,earned:row.earned!==false});
+      S.syncedIds.add(row.id);
+    }else if(table==='bat_log_update'){
+      var idx=S.blog.findIndex(function(e){return e.id===row.id;});
+      if(idx>=0){
+        S.blog[idx].run=row.run||0;
+        S.blog[idx].rbi=row.rbi||0;
+        S.blog[idx].sb=row.sb||0;
+        S.blog[idx].cs=row.cs||0;
+      }else{
+        S.blog.push({id:row.id,gid:row.game_id,pno:row.player_no,oc:row.oc,zone:row.zone||null,run:row.run||0,rbi:row.rbi||0,sb:row.sb||0,cs:row.cs||0});
+        S.syncedIds.add(row.id);
+      }
+    }
+    save();
+    renderGHdr&&renderGHdr();
+    if(S.tab===2||S.tab===3)renderCt();
+  }:null;
+  var onBroadcastReceive=PERM.parent?function(gs){
+    // S.bases (타자 탭용): gs.bases 사용
+    if(gs.bases)S.bases=gs.bases;
+    // S.pitBases (투수 탭용): gs.pitBases 사용
+    if(gs.pitBases)S.pitBases=gs.pitBases;
+    S.outs=typeof gs.outs==='number'?gs.outs:0;
+    S.pitOuts=typeof gs.pitOuts==='number'?gs.pitOuts:0;
+    if(gs.inning!=null)S.inning=gs.inning;
+    if(gs.topBot!=null)S.topBot=gs.topBot;
+    renderGHdr&&renderGHdr();
+    if(S.tab===0||S.tab===1)renderCt();
+  }:null;
+  SB.startRealtime(S.teamId,function(game){
+    var mapped={id:game.id,date:game.date,opp:game.opponent,type:game.type||'R',no:game.game_no||1,status:game.status};
+    var idx=S.games.findIndex(function(g){return g.id===game.id;});
+    if(idx>=0)S.games[idx]=mapped;else S.games.push(mapped);
+    if(S.game&&S.game.id===game.id){
+      if(game.status==='ended'){
+        S.game=null;save();
+        toast('감독이 경기를 종료했습니다');
+        r();return;
+      }
+      S.game=Object.assign({},S.game,mapped);
+    }
+    save();
+    renderGHdr&&renderGHdr();
+    if(S.tab===2)renderCt();
+  },onRecordInsert,onBroadcastReceive);
+}
+function broadcastGameState(from){
+  if(!PERM.canEdit||!S.game||!SB._channel)return;
+  var bases,pb;
+  if(from==='pit'){
+    // 투수 탭 기준: pitBases → bases 동기화
+    pb=S.pitBases||{b1:null,b2:null,b3:null};
+    bases={b1:pb.b1?pb.b1.pno:null,b2:pb.b2?pb.b2.pno:null,b3:pb.b3?pb.b3.pno:null};
+    S.bases=bases;
+  }else{
+    // 타자 탭 기준: bases → pitBases 동기화
+    bases=S.bases||{b1:null,b2:null,b3:null};
+    var fp=function(no){return ROSTER.find(function(x){return x.no===no;})||{};};
+    pb={
+      b1:bases.b1!=null?{pno:bases.b1,pn:fp(bases.b1).name||'',earned:true}:null,
+      b2:bases.b2!=null?{pno:bases.b2,pn:fp(bases.b2).name||'',earned:true}:null,
+      b3:bases.b3!=null?{pno:bases.b3,pn:fp(bases.b3).name||'',earned:true}:null
+    };
+    S.pitBases=pb;
+  }
+  SB.broadcastGameState({
+    bases:bases,outs:S.outs||0,
+    pitBases:pb,pitOuts:S.pitOuts||0,
+    inning:S.inning||1,topBot:S.topBot||'top'
+  });
 }
 function parseRosterSiblings(roster){
   (roster||[]).forEach(function(p){
@@ -667,7 +754,7 @@ async function doApplyInviteCode(){
 async function doLogout(){
   sessionStorage.removeItem('bb_role');
   S.role=null;
-  if(window.SB)await SB.signOut().catch(function(){});
+  if(window.SB){SB.stopRealtime();await SB.signOut().catch(function(){});}
   renderLogin();
 }
 
@@ -2506,7 +2593,7 @@ function saveBat(){
   applyBaseAdvancement(S.bo,p.no);
   save();
   if(window.SupabaseClient&&S.teamId&&S.game){var _gid=S.game.id;SB.upsertGame(S.game,S.teamId).then(function(){return SB.upsertBatLog(S.blog.filter(function(e){return e.gid===_gid;}),S.teamId);}).catch(function(e){console.warn('[SB]bat',e);});}
-  toast(p.name+' '+ocInfo(S.bo).l+' 저장!','ok');S.bs=0;S.bzone=null;r();
+  toast(p.name+' '+ocInfo(S.bo).l+' 저장!','ok');S.bs=0;S.bzone=null;r();broadcastGameState('bat');
 }
 function undoLast(){
   if(!S.undoStack||!S.undoStack.length){toast('취소할 기록이 없습니다','err');return;}
@@ -2520,7 +2607,7 @@ function undoLast(){
   S.bases=snap.bases;S.outs=snap.outs;
   if(snap.inning!=null)S.inning=snap.inning;
   if(snap.topBot!=null)S.topBot=snap.topBot;
-  save();toast(snap.label+' 취소','ok');r();
+  save();toast(snap.label+' 취소','ok');r();broadcastGameState('bat');
 }
 function snapPitSt(label,bfId){
   if(!S.game)return null;
@@ -2541,7 +2628,7 @@ function undoPitLast(){
   S.pitBases=snap.pitBases;S.pitOuts=snap.pitOuts;
   if(snap.inning!=null)S.inning=snap.inning;
   if(snap.topBot!=null)S.topBot=snap.topBot;
-  save();toast(snap.label+' 취소','ok');renderGHdr();r();
+  save();toast(snap.label+' 취소','ok');renderGHdr();r();broadcastGameState('pit');
 }
 function pitSelOC(id){
   if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
@@ -2559,7 +2646,7 @@ function pitSelOC(id){
   if(newRuns>0){var ne=S.pit_runs.slice(-newRuns);var erC=ne.filter(function(r){return r.earned;}).length;var uerC=newRuns-erC;msg+=' · '+newRuns+'실점'+(erC?' 자책'+erC:'')+(uerC?' 비자책'+uerC:'');}
   toast(msg,newRuns>0?'err':'ok');
   if(S.pitOuts>=3)toast('3아웃 — 이닝 종료 버튼을 눌러주세요','ok');
-  renderGHdr();renderCt();
+  renderGHdr();renderCt();broadcastGameState('pit');
 }
 function applyPitBaseAdv(oc){
   if(!S.game)return;
@@ -2698,7 +2785,7 @@ function pitConfirmRun(earned){
   if(!rPno){var p=ROSTER.find(function(x){return x.no===S.curPit;});if(p){rPno=p.no;rPn=p.name;}}
   if(rPno){S.pit_runs.push({id:UID(),gid:S.game.id,pno:rPno,pn:rPn,earned:earned});save();}
   toast((earned?'자책점':'비자책점')+' 기록','ok');
-  closeModal();renderGHdr();renderCt();
+  closeModal();renderGHdr();renderCt();broadcastGameState('pit');
 }
 function pitRunnerSteal(base){
   if(!S.pitBases||!S.pitBases[base])return;
@@ -2708,7 +2795,7 @@ function pitRunnerSteal(base){
   if(base==='b1'){if(!S.pitBases.b2){S.pitBases.b2=runner;S.pitBases.b1=null;}else toast('2루에 주자 있음','err');}
   else if(base==='b2'){if(!S.pitBases.b3){S.pitBases.b3=runner;S.pitBases.b2=null;}else toast('3루에 주자 있음','err');}
   else if(base==='b3'){pitRunnerScore('b3');return;}
-  save();renderCt();
+  save();renderCt();broadcastGameState('pit');
 }
 function pitRunnerOut(base){
   if(!S.pitBases)return;
@@ -2716,14 +2803,14 @@ function pitRunnerOut(base){
   S.pitBases[base]=null;
   S.pitOuts=(S.pitOuts||0)+1;
   if(S.pitOuts>=3){S.pitOuts=3;toast('3아웃 — 이닝 종료 버튼을 눌러주세요','ok');}
-  save();renderCt();
+  save();renderCt();broadcastGameState('pit');
 }
 function pitEndInning(){
   var innLbl=(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초');
   pushPitUndo(snapPitSt(innLbl+' 이닝 종료'));
   advanceInning();
   S.pitBases={b1:null,b2:null,b3:null};S.pitOuts=0;
-  save();renderGHdr();renderCt();toast('이닝 종료','ok');
+  save();renderGHdr();renderCt();toast('이닝 종료','ok');broadcastGameState('pit');
 }
 function addBatRun(pno){
   if(!S.game){toast('경기를 먼저 시작해주세요','err');return;}
@@ -2893,6 +2980,7 @@ function advanceBase(base){
     S.bases.b2=pno;S.bases.b1=null;
     save();renderCt();toast((p?p.name:'선수')+' 2루 진루','ok');
   }
+  broadcastGameState('bat');
 }
 function stealBase(base){
   var pno=S.bases[base];if(pno==null)return;
@@ -2904,6 +2992,7 @@ function stealBase(base){
   if(S.game){var ents=S.blog.filter(function(e){return e.gid===S.game.id&&Number(e.pno)===Number(pno);});if(ents.length)ents[ents.length-1].sb=(ents[ents.length-1].sb||0)+1;}
   save();renderGHdr();renderCt();
   toast((p?p.name:'선수')+' 도루 성공!','ok');
+  broadcastGameState('bat');
 }
 function caughtBase(base){
   var pno=S.bases[base];if(pno==null)return;
@@ -2913,12 +3002,13 @@ function caughtBase(base){
   if(S.game){var ents=S.blog.filter(function(e){return e.gid===S.game.id&&Number(e.pno)===Number(pno);});if(ents.length)ents[ents.length-1].cs=(ents[ents.length-1].cs||0)+1;}
   save();renderCt();
   toast((p?p.name:'선수')+' 도루 실패','');
+  broadcastGameState('bat');
 }
 function removeFromBase(base){
   var pno=S.bases[base];if(pno==null)return;
   var p=ROSTER.find(function(x){return Number(x.no)===Number(pno);});
   pushUndo(snapBaseSt((p?p.name:'선수')+' 아웃'));
-  S.bases[base]=null;S.outs=(S.outs||0)+1;save();renderCt();
+  S.bases[base]=null;S.outs=(S.outs||0)+1;save();renderCt();broadcastGameState('bat');
 }
 function advanceInning(){
   if(S.topBot!=='bot'){S.topBot='bot';}
@@ -2931,13 +3021,13 @@ function adjInning(d){
     if(S.topBot==='bot'){S.topBot='top';}
     else{S.inning=Math.max((S.inning||1)-1,1);S.topBot='bot';}
   }
-  save();renderGHdr();renderCt();
+  save();renderGHdr();renderCt();broadcastGameState('bat');
 }
 function endInning(){
   var innLbl=(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초');
   pushUndo(snapBaseSt(innLbl+' 이닝 종료'));
   advanceInning();
-  S.bases={b1:null,b2:null,b3:null};S.outs=0;save();renderGHdr();renderCt();toast('이닝 종료','ok');
+  S.bases={b1:null,b2:null,b3:null};S.outs=0;save();renderGHdr();renderCt();toast('이닝 종료','ok');broadcastGameState('bat');
 }
 function showTiebreakerModal(){
   S._tb2=null;S._tb1=null;
