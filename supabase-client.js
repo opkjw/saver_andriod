@@ -39,11 +39,14 @@
 })();
 
 var SB = {
-  /** DB role → 앱 role 변환 (parent→user, coach→admin) */
+  /** DB role → 앱 role 변환 */
   mapRole: function (dbRole) {
     if (dbRole === 'parent') return 'user';
-    if (dbRole === 'coach') return 'admin';
-    return dbRole || 'user';
+    if (dbRole === 'staff') return 'admin';
+    if (dbRole === 'coach') return 'admin';   // legacy
+    if (dbRole === 'admin') return 'admin';   // legacy
+    if (dbRole === 'recorder') return 'admin'; // legacy
+    return 'user';
   },
 
   /** 현재 로그인 세션 반환 */
@@ -76,8 +79,12 @@ var SB = {
     if (!/^[A-Z0-9]{4,20}$/.test(code)) throw new Error('올바르지 않은 초대 코드 형식입니다');
     var { data, error } = await client.rpc('apply_invite_code', { p_code: code });
     if (error) throw new Error('초대 코드 처리 오류: ' + error.message);
-    if (data && data.error) throw new Error(data.error);
-    return { role: data.role, teamId: data.teamId };
+    if (data && data.error) {
+      if (data.error === 'invalid_code') throw new Error('유효하지 않은 초대 코드입니다');
+      if (data.error === 'staff_limit') throw new Error('스태프 인원이 가득 찼습니다 (최대 3명)');
+      throw new Error(data.error);
+    }
+    return { role: data.role, teamId: data.team_id };
   },
 
 
@@ -88,11 +95,35 @@ var SB = {
     var { data: sessData } = await client.auth.getSession();
     if (!sessData || !sessData.session) return null;
     var { data, error } = await client.from('profiles')
-      .select('id, role, team_id, nickname, player_no')
+      .select('id, role, team_id, nickname, player_no, staff_title, linked_players')
       .eq('id', sessData.session.user.id)
       .maybeSingle();
     if (error) { console.warn('[Supabase] getProfile 오류', error); return null; }
     return data;
+  },
+
+  /** nickname 직접 저장 */
+  updateNickname: async function (name) {
+    var client = window.SupabaseClient;
+    if (!client) throw new Error('Supabase 미초기화');
+    var { data: sessData } = await client.auth.getSession();
+    if (!sessData || !sessData.session) throw new Error('로그인 필요');
+    var { error } = await client.from('profiles')
+      .update({ nickname: name })
+      .eq('id', sessData.session.user.id);
+    if (error) throw new Error('저장 오류: ' + error.message);
+  },
+
+  /** 프로필 업데이트 (nickname + staff_title) */
+  updateProfile: async function (fields) {
+    var client = window.SupabaseClient;
+    if (!client) throw new Error('Supabase 미초기화');
+    var { data: sessData } = await client.auth.getSession();
+    if (!sessData || !sessData.session) throw new Error('로그인 필요');
+    var { error } = await client.from('profiles')
+      .update(fields)
+      .eq('id', sessData.session.user.id);
+    if (error) throw new Error('저장 오류: ' + error.message);
   },
 
   /** 로그아웃 */
@@ -158,8 +189,10 @@ var SB = {
       client.from('bat_log').select('*').eq('team_id', teamId),
       client.from('pit_bf').select('*').eq('team_id', teamId),
       client.from('pit_runs').select('*').eq('team_id', teamId),
-      client.from('players').select('*').eq('team_id', teamId).order('no'),
-      client.from('teams').select('name').eq('id', teamId).maybeSingle(),
+      client.from('players').select('no, name, pos, can_bat, can_pitch, siblings, invite_code').eq('team_id', teamId).order('no'),
+      client.from('teams').select('name, invite_code_admin').eq('id', teamId).maybeSingle(),
+      client.from('profiles').select('id, nickname, linked_players, staff_title').eq('team_id', teamId).eq('role', 'parent'),
+      client.from('profiles').select('id, nickname, staff_title, player_no').eq('team_id', teamId).eq('role', 'staff'),
     ]);
     var gamesRaw = results[0].data || [];
     var batLogRaw = results[1].data || [];
@@ -167,6 +200,9 @@ var SB = {
     var pitRunsRaw = results[3].data || [];
     var rosterRaw = results[4].data || [];
     var teamName = (results[5].data && results[5].data.name) || '';
+    var teamInviteAdmin = (results[5].data && results[5].data.invite_code_admin) || null;
+    var parentProfilesRaw = results[6].data || [];
+    var staffProfilesRaw = results[7].data || [];
 
     var games = gamesRaw.map(function (g) {
       return { id: g.id, date: g.date, opp: g.opponent, type: g.type || 'R', no: g.game_no || 1, status: g.status };
@@ -181,10 +217,16 @@ var SB = {
       return { id: e.id, gid: e.game_id, pno: e.player_no, earned: e.earned !== false };
     });
     var roster = rosterRaw.map(function (p) {
-      return { no: p.no, name: p.name, r: p.role || 'b', pos: p.pos || '', siblings: p.siblings || [] };
+      return { no: p.no, name: p.name, pos: p.pos || '', canBat: p.can_bat !== false, canPitch: p.can_pitch === true, siblings: p.siblings || [], inviteCode: p.invite_code || null };
+    });
+    var parentProfiles = parentProfilesRaw.map(function (p) {
+      return { id: p.id, nickname: p.nickname || '', linkedPlayers: p.linked_players || [], staffTitle: null };
+    });
+    var staffProfiles = staffProfilesRaw.map(function (p) {
+      return { id: p.id, nickname: p.nickname || '', staffTitle: p.staff_title || '', playerNo: p.player_no || null };
     });
 
-    return { games: games, bat_log: bat_log, pit_bf: pit_bf, pit_runs: pit_runs, roster: roster, teamName: teamName };
+    return { games: games, bat_log: bat_log, pit_bf: pit_bf, pit_runs: pit_runs, roster: roster, teamName: teamName, teamInviteAdmin: teamInviteAdmin, parentProfiles: parentProfiles, staffProfiles: staffProfiles };
   },
 
   /** 경기 upsert — 앱 필드를 DB 필드로 매핑 */
@@ -287,10 +329,49 @@ var SB = {
     if (window.PERM && window.PERM.parent) return;
     if (!players || !players.length) return;
     var rows = players.map(function (p) {
-      return { team_id: teamId, no: p.no, name: p.name, role: p.r || 'b', pos: p.pos || null, siblings: p.siblings || [] };
+      return { team_id: teamId, no: p.no, name: p.name, can_bat: p.canBat !== false, can_pitch: p.canPitch === true, pos: p.pos || null };
     });
-    var { error } = await client.from('players').upsert(rows, { onConflict: 'team_id,no,role' });
+    var { error } = await client.from('players').upsert(rows, { onConflict: 'team_id,no' });
     if (error) console.warn('[SB] upsertRoster 오류', error);
+  },
+
+  /** 선수 초대 코드 생성/갱신
+   *  playerNo+role 조합으로 단일 row만 UPDATE — 같은 번호의 타자/투수 row 충돌 방지 */
+  generatePlayerInviteCode: async function (playerNo, teamId) {
+    var client = window.SupabaseClient;
+    if (!client) throw new Error('Supabase 미초기화');
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    function mkCode() {
+      var c = '';
+      for (var i = 0; i < 8; i++) c += chars[Math.floor(Math.random() * chars.length)];
+      return c;
+    }
+    for (var attempt = 0; attempt < 5; attempt++) {
+      var code = mkCode();
+      var { error } = await client.from('players')
+        .update({ invite_code: code })
+        .eq('team_id', teamId)
+        .eq('no', playerNo);
+      if (!error) return code;
+      if (error.code !== '23505') throw new Error('초대 코드 생성 오류: ' + error.message);
+    }
+    throw new Error('초대 코드 생성 실패. 다시 눌러주세요.');
+  },
+
+  /** 학부모 연결 선수 목록 업데이트 (staff 전용) */
+  updateParentPlayers: async function (parentId, playerNos) {
+    var client = window.SupabaseClient;
+    if (!client) throw new Error('Supabase 미초기화');
+    var { data, error } = await client.rpc('update_parent_players', {
+      p_parent_id: parentId,
+      p_players: playerNos,
+    });
+    if (error) throw new Error('보호자 연결 오류: ' + error.message);
+    if (data && data.error) {
+      if (data.error === 'limit_exceeded') throw new Error('연결 가능한 선수를 초과했습니다 (최대 3명)');
+      throw new Error(data.error);
+    }
+    return data;
   },
 };
 
