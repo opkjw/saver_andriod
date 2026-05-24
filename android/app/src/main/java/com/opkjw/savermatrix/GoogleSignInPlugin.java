@@ -37,7 +37,6 @@ public class GoogleSignInPlugin extends Plugin {
             .requestScopes(new Scope(Scopes.PROFILE))
             .build();
         googleSignInClient = GoogleSignIn.getClient(getActivity(), gso);
-        Log.d(TAG, "GoogleSignInPlugin loaded, webClientId=" + WEB_CLIENT_ID);
     }
 
     @PluginMethod
@@ -61,7 +60,6 @@ public class GoogleSignInPlugin extends Plugin {
             GoogleSignIn.getSignedInAccountFromIntent(result.getData());
         try {
             GoogleSignInAccount account = task.getResult(ApiException.class);
-            Log.d(TAG, "Sign-in success: " + account.getEmail());
             JSObject ret = new JSObject();
             ret.put("idToken", account.getIdToken());
             ret.put("email", account.getEmail());

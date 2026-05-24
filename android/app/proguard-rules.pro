@@ -1,4 +1,21 @@
 # Add project specific ProGuard rules here.
+
+# Capacitor
+-keep class com.getcapacitor.** { *; }
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+-keepclassmembers class * {
+    @com.getcapacitor.PluginMethod public *;
+}
+
+# Google Sign-In
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+
+# WebView JS interface
+-keepattributes JavascriptInterface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 #
