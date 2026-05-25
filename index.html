@@ -1228,7 +1228,7 @@ function renderGHdr(){
       // ── 가로 모드: 컴팩트 헤더 (점수·이닝·아웃 한 줄 통합, 패딩 최소화) ──
       hdrHtml='<div class="ghdr" style="flex-shrink:0;padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
-        +'<div style="min-width:0">'
+        +'<div style="min-width:0;flex:1">'
         +(S.game
           ?'<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden">'
             +'<span class="gh-title" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;max-width:90px">vs '+esc(S.game.opp)+'</span>'
