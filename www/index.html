@@ -1215,6 +1215,7 @@ function renderGHdr(){
   if(tab){
     var sc=S.game?gameScore(S.game.id):null;
     var innDisp=S.game?((S.inning||1)+(S.topBot==='bot'?'▼':'▲')):'';
+    var innKor=S.game?((S.inning||1)+'회'+(S.topBot==='bot'?'말':'초')):'';
     var outDots='';
     for(var oi=0;oi<3;oi++)outDots+='<span style="width:10px;height:10px;border-radius:50%;display:inline-block;margin:0 1px;background:'+(oi<(S.outs||0)?'#dc2626':'rgba(0,0,0,.13)')+'"></span>';
     var btns='<button class="gh-icon" onclick="loadFromSupabase()" style="opacity:'+(S.loading?'0.5':'1')+'" '+(S.loading?'disabled':'')+'>'+refreshIcon+'</button>'
@@ -1253,8 +1254,7 @@ function renderGHdr(){
       +(sc?'<div style="flex-shrink:0;background:var(--card);padding:14px 16px;border-bottom:1px solid var(--bdr)">'
         +'<span style="font-size:38px;font-weight:800;letter-spacing:4px;color:var(--txt);line-height:1">'+sc.our+' : '+sc.opp+'</span>'
         +'<div style="display:flex;align-items:center;gap:10px;margin-top:8px">'
-        +'<span style="background:var(--navy);color:#fff;border-radius:var(--r);padding:3px 10px;font-size:12px;font-weight:700">'+innDisp+'이닝</span>'
-        +'<div style="display:flex;align-items:center;gap:2px"><span style="font-size:11px;color:var(--txt2);margin-right:2px">아웃</span>'+outDots+'</div>'
+        +'<span style="background:var(--navy);color:#fff;border-radius:var(--r);padding:3px 10px;font-size:12px;font-weight:700">'+innKor+'</span>'
         +'</div></div>':'');
     }
   }else{
