@@ -42,6 +42,7 @@ var SB = {
   /** DB role → 앱 role 변환 */
   mapRole: function (dbRole) {
     if (dbRole === 'parent') return 'user';
+    if (dbRole === 'player') return 'user';
     if (dbRole === 'staff') return 'admin';
     if (dbRole === 'coach') return 'admin';   // legacy
     if (dbRole === 'admin') return 'admin';   // legacy
