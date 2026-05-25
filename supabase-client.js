@@ -71,20 +71,20 @@ var SB = {
     return data.url;
   },
 
-  /** 초대 코드로 현재 유저의 팀+역할 설정 (Google 로그인 후 호출) */
+  /** 초대 코드로 현재 유저의 팀+역할 설정 (security definer RPC — 클라이언트에서 role/team_id 직접 변경 불가) */
   applyInviteCode: async function (inviteCode) {
     var client = window.SupabaseClient;
     if (!client) throw new Error('Supabase 미초기화');
     var code = inviteCode.toUpperCase();
     if (!/^[A-Z0-9]{4,20}$/.test(code)) throw new Error('올바르지 않은 초대 코드 형식입니다');
-    var { data, error } = await client.rpc('apply_invite_code', { p_code: code });
-    if (error) throw new Error('초대 코드 처리 오류: ' + error.message);
-    if (data && data.error) {
-      if (data.error === 'invalid_code') throw new Error('유효하지 않은 초대 코드입니다');
-      if (data.error === 'staff_limit') throw new Error('스태프 인원이 가득 찼습니다 (최대 3명)');
-      throw new Error(data.error);
+    var { error } = await client.rpc('apply_invite_code', { code: code });
+    if (error) {
+      if (error.message && error.message.indexOf('invalid_code') >= 0) throw new Error('유효하지 않은 초대 코드입니다');
+      throw new Error('초대 코드 처리 오류: ' + error.message);
     }
-    return { role: data.role, teamId: data.team_id };
+    var profile = await SB.getProfile();
+    if (!profile || !profile.team_id) throw new Error('프로필 업데이트 실패');
+    return { role: profile.role, teamId: profile.team_id };
   },
 
 
@@ -114,14 +114,19 @@ var SB = {
     if (error) throw new Error('저장 오류: ' + error.message);
   },
 
-  /** 프로필 업데이트 (nickname + staff_title) */
+  /** 프로필 업데이트 — nickname/staff_title/player_no만 허용 (role/team_id 변경 불가) */
   updateProfile: async function (fields) {
     var client = window.SupabaseClient;
     if (!client) throw new Error('Supabase 미초기화');
     var { data: sessData } = await client.auth.getSession();
     if (!sessData || !sessData.session) throw new Error('로그인 필요');
+    var safe = {};
+    if (fields.nickname !== undefined) safe.nickname = fields.nickname;
+    if (fields.staff_title !== undefined) safe.staff_title = fields.staff_title;
+    if (fields.player_no !== undefined) safe.player_no = fields.player_no;
+    if (!Object.keys(safe).length) return;
     var { error } = await client.from('profiles')
-      .update(fields)
+      .update(safe)
       .eq('id', sessData.session.user.id);
     if (error) throw new Error('저장 오류: ' + error.message);
   },
