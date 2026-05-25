@@ -215,13 +215,20 @@ tr:nth-child(even) td{background:var(--bg2)}
 .cal-sum-date{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .cal-sum-player{font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:3px}
 .cal-sum-stat{font-size:13px;color:var(--txt);line-height:1.8}
-/* ── 태블릿 2단 레이아웃 (768px+) ─────────────────────────── */
 /* ── iPad 입력탭 2단 레이아웃 (iOS 전용, body.ipad-2col) ───────── */
-body.ipad-2col #app{max-width:100%;display:grid;grid-template-columns:360px 1fr;grid-template-rows:auto 1fr;}
+body.ipad-2col #app{max-width:100%;display:grid;grid-template-columns:380px 1fr;grid-template-rows:auto 1fr;}
 body.ipad-2col #ghdr{grid-column:1;grid-row:1/3;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--bdr);background:var(--bg);}
 body.ipad-2col #tbr{grid-column:2;grid-row:1;border-top:none;border-bottom:1px solid var(--bdr);padding-bottom:0;padding-top:8px;}
 body.ipad-2col .tab{padding:8px 4px 9px;}
 body.ipad-2col #ct{grid-column:2;grid-row:2;overflow-y:auto;}
+/* ── iPad 우측 패널 조정 ─────────────────────────────────── */
+body.ipad-2col .pgrid{grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 16px}
+body.ipad-2col .pbtn{min-height:64px;gap:10px}
+body.ipad-2col .pno{width:34px;height:34px;font-size:12px}
+body.ipad-2col .pn{font-size:14px}
+body.ipad-2col .pp{font-size:12px}
+body.ipad-2col .ocbtn{min-height:58px;font-size:14px}
+body.ipad-2col .ocgrid{gap:8px}
 </style>
 <script src="capacitor.js"></script>
 <script src="supabase-client.js"></script>
@@ -1205,6 +1212,33 @@ function confirmPlayerSel(){
   r();
 }
 
+// ── iPad 미니 타석 로그 ───────────────────────────────────
+function rMiniLog(){
+  if(!S.game)return'';
+  var entries=S.blog.filter(function(e){return e.gid===S.game.id&&e.oc!=='_RUN';});
+  var h='<div style="border-top:1px solid var(--bdr);padding:10px 12px 6px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--txt2);letter-spacing:.5px;margin-bottom:6px">최근 타석</div>';
+  if(!entries.length){
+    return h+'<div style="font-size:11px;color:var(--txt2);text-align:center;padding:8px 0">이 경기 기록 없음</div></div>';
+  }
+  entries.slice().reverse().forEach(function(e){
+    var p=ROSTER.find(function(x){return Number(x.no)===Number(e.pno);});
+    var pname=p?(p.name.length>5?p.name.slice(0,5)+'…':p.name):'?';
+    var oc=ocInfo(e.oc);
+    var extra='';
+    if(e.run)extra+='<span style="font-size:10px;color:#16a34a;font-weight:700;margin-left:3px">+'+e.run+'R</span>';
+    if(e.rbi)extra+='<span style="font-size:10px;color:var(--txt2);margin-left:3px">'+e.rbi+'타점</span>';
+    if(e.sb)extra+='<span style="font-size:10px;color:#0369a1;margin-left:3px">도루</span>';
+    h+='<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bdr)">'
+      +'<span style="font-size:10px;font-weight:700;background:var(--navy);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1">'+e.pno+'</span>'
+      +'<span style="font-size:12px;font-weight:600;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(pname)+'</span>'
+      +extra
+      +'<span style="font-size:10px;font-weight:700;background:'+oc.bg+';color:'+oc.fg+';border-radius:3px;padding:1px 6px;flex-shrink:0">'+oc.l+'</span>'
+      +'</div>';
+  });
+  return h+'</div>';
+}
+
 // ── 렌더 ─────────────────────────────────────────────────
 function renderGHdr(){
   const isFirstVisit=!S.setupDone;
@@ -1293,7 +1327,7 @@ function renderGHdr(){
   }
   // 태블릿: ③ 베이스 다이어그램 영역 (flex:1 — 남은 공간 채움, 내용 많으면 자체 스크롤)
   var sideHtml=tab&&S.game
-    ?'<div style="flex:1;overflow-y:auto;min-height:0">'+((S.tab===1&&!PERM.parent)?rPitBaseDiagram():rBaseDiagram())+'</div>'
+    ?'<div style="flex:1;overflow-y:auto;min-height:0">'+((S.tab===1&&!PERM.parent)?rPitBaseDiagram():rBaseDiagram())+rMiniLog()+'</div>'
     :'';
   document.getElementById('ghdr').innerHTML=hdrHtml+sideHtml;
 }
