@@ -1360,6 +1360,8 @@ function renderGHdr(){
       sideHtml=rLogMasterPanel(ag2,S.logGameId,calMon2,calY2,calM2,prevMon2,nextMon2,firstDow2,daysInMon2,gameMap2,noDateG2);
     } else if(S.tab===3){
       sideHtml=rStatsMasterPanel();
+    } else if(S.tab===4){
+      sideHtml=rSettingsMasterPanel();
     }
   }
   document.getElementById('ghdr').innerHTML=hdrHtml+sideHtml;
@@ -2964,6 +2966,107 @@ function setPitFocus(pno){
   if(S.pitFocus!==null){setTimeout(function(){var el=document.getElementById('pit-saber-section');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},100);}
 }
 
+function rSettingsMasterPanel(){
+  var isAdmin=PERM.admin;
+  var staffTitle=S.staffTitle||'스태프';
+  var roleLbl=isAdmin?('👨‍💼 '+staffTitle):'👨‍👩‍👦 학부모';
+  var roleColor=isAdmin?'var(--navy)':'#15803d';
+  var roleBadge='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);padding:11px 14px;margin-bottom:10px">'
+    +'<div style="font-size:12px;color:var(--txt2)">접속 모드 <span style="font-weight:700;color:'+roleColor+';margin-left:6px">'+roleLbl+'</span></div>'
+    +'<button onclick="doLogout()" style="font-size:12px;color:var(--txt2);background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 12px;min-height:34px;cursor:pointer;font-family:inherit">로그아웃</button>'
+    +'</div>';
+  var dups=checkDuplicateGames();
+  var dupWarn='';
+  if(dups.length){
+    dupWarn='<div style="background:#FDEDEC;border:1.5px solid #fca5a5;border-radius:var(--rl);padding:12px 14px;margin-bottom:10px">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px">⚠ 중복 경기 감지 ('+dups.length+'건)</div>';
+    dups.forEach(function(grp){
+      dupWarn+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+        +'<span style="font-size:12px;color:var(--txt)">'+esc(grp[0].date)+' vs '+esc(grp[0].opp)+'</span>'
+        +'<button onclick="showDupGameModal(&apos;'+grp[0].id+'&apos;,&apos;'+grp[1].id+'&apos;)" style="font-size:11px;padding:5px 12px;background:#fff;border:1.5px solid #fca5a5;border-radius:10px;color:var(--red);cursor:pointer;font-family:inherit;font-weight:600">처리하기</button>'
+        +'</div>';
+    });
+    dupWarn+='</div>';
+  }
+  var teamCard='<div class="cfgcard">'
+    +'<div class="cfgtitle">🏫 학교 / 팀 정보</div>'
+    +'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+(S.schoolName||'(미설정)')+'</div>'
+    +'</div>';
+  var staffSection='';
+  if(isAdmin){
+    var staffSlots='';
+    var staffProfiles=S.staffProfiles||[];
+    for(var si=0;si<3;si++){
+      var sp=staffProfiles[si];
+      var isMine=sp&&S.profileId&&sp.id===S.profileId;
+      if(sp){
+        staffSlots+='<div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--bdr)">'
+          +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isMine?'var(--navy)':'var(--bg2)')+';color:'+(isMine?'#fff':'var(--txt2)')+';font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid '+(isMine?'var(--navy)':'var(--bdr)')+'">'+( sp.playerNo!=null?sp.playerNo:(si+1))+'</div>'
+          +'<div style="flex:1">'
+          +'<div style="font-size:13px;font-weight:600;color:var(--txt)">'+esc(sp.nickname||'(이름없음)')+(isMine?'<span style="font-size:10px;color:var(--navy);margin-left:5px;font-weight:700">나</span>':'')+'</div>'
+          +'<div style="font-size:11px;color:var(--txt2)">'+esc(sp.staffTitle||'스태프')+(sp.playerNo!=null?' · #'+sp.playerNo:'')+'</div>'
+          +'</div>'
+          +(isMine?'<button onclick="showStaffEdit()" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 10px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit">편집</button>':'')
+          +'</div>';
+      }else{
+        staffSlots+='<div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--bdr);opacity:.4">'
+          +'<div style="width:30px;height:30px;border-radius:50%;background:var(--bdr);color:var(--txt2);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(si+1)+'</div>'
+          +'<div style="flex:1;font-size:13px;color:var(--txt2)">빈 슬롯</div>'
+          +'</div>';
+      }
+    }
+    var staffCode=S.teamInviteAdmin||'';
+    staffSection='<div class="cfgcard">'
+      +'<div class="cfgtitle">👨‍💼 스태프 관리 <span style="font-size:11px;color:var(--txt2);font-weight:400">최대 3명</span></div>'
+      +staffSlots
+      +(staffCode
+        ?'<div style="margin-top:12px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--bdr)">'
+          +'<div style="font-size:11px;color:var(--txt2);margin-bottom:4px">스태프 초대 코드</div>'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:16px;font-weight:700;color:var(--navy);letter-spacing:2px">'+esc(staffCode)+'</span>'
+          +'<button onclick="copyToClipboard(&apos;'+staffCode+'&apos;)" style="background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">복사</button>'
+          +'</div></div>'
+        :'<div style="margin-top:10px;font-size:12px;color:var(--txt2)">스태프 초대 코드를 불러오는 중...</div>')
+      +'</div>';
+  }
+  var myChildSection='';
+  if(!isAdmin){
+    var linkedNos=S.linkedPlayers||[];
+    var childRows='';
+    linkedNos.forEach(function(no){
+      var rp=ROSTER.find(function(x){return x.no===no;})||{no:no,name:'',pos:''};
+      var isCur=S.myPlayer===no;
+      childRows+='<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bdr)">'
+        +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isCur?'var(--navy)':'var(--bg2)')+';color:'+(isCur?'#fff':'var(--txt)')+';font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+no+'</div>'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--txt)">'+esc(rp.name)+'</div><div style="font-size:11px;color:var(--txt2)">'+esc(rp.pos)+'</div></div>'
+        +(isCur?'<span style="font-size:12px;color:var(--navy);font-weight:600">보는 중</span>'
+          :'<button onclick="S.myPlayer='+no+';S.activeChild=null;save();r()" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">선택</button>')
+        +'</div>';
+    });
+    myChildSection='<div class="cfgcard">'
+      +'<div class="cfgtitle">⭐ 우리 아이</div>'
+      +(childRows||'<div style="font-size:13px;color:var(--txt2);padding:8px 0">연결된 선수가 없습니다.<br>감독님께 선수 연결을 요청해주세요.</div>')
+      +'</div>';
+  }
+  var nicknameSection='';
+  if(!isAdmin){
+    var curNick=S.nickname||'';
+    nicknameSection='<div class="cfgcard">'
+      +'<div class="cfgtitle">👤 부모님 이름</div>'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +(curNick
+        ?'<div style="flex:1;font-size:15px;font-weight:600;color:var(--txt)">'+esc(curNick)+'</div>'
+        :'<div style="flex:1;font-size:13px;color:var(--txt2)">미설정</div>')
+      +'<button onclick="showNicknameEdit()" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:6px 14px;font-size:13px;color:var(--txt2);cursor:pointer;font-family:inherit">변경</button>'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--txt2);margin-top:6px">예: 홍길동 부, 홍길동 모</div>'
+      +'</div>';
+  }
+  return'<div style="overflow-y:auto;flex:1;min-height:0;padding:12px">'
+    +roleBadge+dupWarn+teamCard+staffSection+myChildSection+nicknameSection
+    +'</div>';
+}
+
 // ── 설정 탭 ──────────────────────────────────────────────
 function rSettings(){
   const lastStr=S.lastSync?new Date(S.lastSync).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'없음';
@@ -3120,19 +3223,10 @@ function rSettings(){
     :'';
 
   if(isTablet()){
-    var leftCol='<div style="padding:12px">'
-      +roleBadge+dupWarn+setupGuide+teamCard
-      +nicknameSection+staffSection+parentSection+myChildSection
-      +'</div>';
-    var rightCol=isAdmin
-      ?'<div style="padding:12px">'+rosterSection+'</div>'
-      :'<div style="padding:48px 24px;text-align:center;color:var(--txt2)">'
-        +'<div style="font-size:32px;margin-bottom:12px">👥</div>'
-        +'<div style="font-size:13px">학부모 모드에서는<br>선수 관리가 표시되지 않습니다.</div>'
-        +'</div>';
-    return'<div style="display:flex;align-items:flex-start">'
-      +'<div style="width:320px;flex-shrink:0;border-right:1px solid var(--bdr);min-height:60vh">'+leftCol+'</div>'
-      +'<div style="flex:1;min-width:0">'+rightCol+'</div>'
+    if(isAdmin)return'<div class="cfgwrap">'+rosterSection+'</div>';
+    return'<div style="padding:48px 24px;text-align:center;color:var(--txt2)">'
+      +'<div style="font-size:32px;margin-bottom:12px">👥</div>'
+      +'<div style="font-size:13px">왼쪽 패널에서<br>프로필 및 아이 정보를 확인하세요.</div>'
       +'</div>';
   }
 
