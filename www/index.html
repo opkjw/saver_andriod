@@ -1288,8 +1288,8 @@ function renderGHdr(){
       // ── 세로(포트레이트) 모드: 3단 분리 구조 ──
       // ① 네이비 헤더 — title/sub 직접 ghdr flex 자식으로, gh-right 우측 끝
       hdrHtml='<div class="ghdr" style="flex-shrink:0;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 12px">'
-        +'<div style="min-width:0;flex:1"><div class="gh-title">'+(S.game?'vs '+esc(S.game.opp):'⚾ 모야모야')+'</div>'
-        +'<div class="gh-sub" style="margin-top:2px">'+(S.game?esc(S.game.date)+' '+typeBadge:'')+(isFirstVisit&&!S.game?'설정 탭에서 시작하세요':'')+'</div>'
+        +'<div style="min-width:0;flex:1"><div class="gh-title">'+(S.game?'vs '+esc(S.game.opp):'⚾ 모야모야-우리아이 야구 기록')+'</div>'
+        +'<div class="gh-sub" style="margin-top:2px">'+(S.game?esc(S.game.date)+' '+typeBadge:(isFirstVisit?'👇 설정 탭에서 초기 설정을 시작하세요':'경기를 시작하세요'))+'</div>'
         +'</div>'
         +'<div class="gh-right" style="flex-shrink:0">'+btns+'</div>'
         +'</div>'
@@ -2644,7 +2644,7 @@ function rStatsMasterPanel(){
         h+='<div onclick="setSprayPlayer('+Number(s.no)+')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;background:'+(sel?'#EBF0FB':'transparent')+'">';
         h+='<div style="width:30px;height:30px;border-radius:50%;background:'+(sel?'var(--navy)':'var(--bg2)')+';color:'+(sel?'#fff':'var(--txt2)')+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">#'+s.no+'</div>';
         h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:'+(sel?'700':'600')+';color:'+(sel?'var(--navy)':'var(--txt)')+'">'+esc(s.name)+'</div>';
-        h+='<div style="font-size:11px;color:var(--txt2)">PA:'+s.pa+'&nbsp;&nbsp;'+s.avg.toFixed(3).replace(/^0/,'')+'&nbsp;&nbsp;OPS:'+(s.ops<0.001?'-':s.ops.toFixed(3))+'</div></div>';
+        h+='<div style="font-size:11px;color:var(--txt2)">AVG:'+s.avg.toFixed(3).replace(/^0/,'')+'&nbsp;&nbsp;OPS:'+(s.ops<0.001?'-':s.ops.toFixed(3))+'&nbsp;&nbsp;wRC+:'+s.wrc_plus+'</div></div>';
         if(sel)h+='<span style="color:var(--navy);font-size:12px">📍</span>';
         h+='</div>';
       });
