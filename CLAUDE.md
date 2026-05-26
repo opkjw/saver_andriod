@@ -83,9 +83,11 @@ capacitor.config.ts   — appId: com.opkjw.savermatrix, androidScheme: https
 
 | DB role | 앱 role (SB.mapRole) | 권한 |
 |---|---|---|
-| `admin` | `admin` | 감독/코치 — 전체 기록 입력·편집 |
+| `staff` | `admin` | 감독/코치 — 전체 기록 입력·편집 |
 | `recorder` | `recorder` | 기록자 — 전체 기록 입력·편집 |
 | `parent` | `user` | 학부모 — 자녀 통계 조회만 |
+
+> **주의**: 실제 DB에 저장되는 role은 `staff` (구버전 `admin`/`coach`도 mapRole에서 호환 처리). Supabase RLS 정책·RPC 함수에서 role 체크 시 반드시 `role IN ('staff', 'admin')` 형태로 작성할 것.
 
 - 팀 생성은 Supabase 대시보드에서 직접 수행 (앱 내 팀 생성 없음)
 - 초대 코드 3종: `invite_code`(학부모), `invite_code_recorder`(기록자), `invite_code_admin`(감독)

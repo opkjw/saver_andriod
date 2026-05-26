@@ -46,7 +46,7 @@ var SB = {
     if (dbRole === 'staff') return 'admin';
     if (dbRole === 'coach') return 'admin';   // legacy
     if (dbRole === 'admin') return 'admin';   // legacy
-    if (dbRole === 'recorder') return 'admin'; // legacy
+    if (dbRole === 'recorder') return 'recorder'; // 기록자 — 기록 입력 가능, 팀 관리 불가
     return 'user';
   },
 
@@ -149,6 +149,8 @@ var SB = {
     if (!client || !teamId) return;
     SB.stopRealtime();
     var ch = client.channel('team-' + teamId);
+    ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'games', filter: 'team_id=eq.' + teamId },
+      function (payload) { if (onGameUpdate) onGameUpdate(payload.new); });
     ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'team_id=eq.' + teamId },
       function (payload) { if (onGameUpdate) onGameUpdate(payload.new); });
     if (onRecordInsert) {
@@ -196,9 +198,10 @@ var SB = {
       client.from('pit_bf').select('*').eq('team_id', teamId),
       client.from('pit_runs').select('*').eq('team_id', teamId),
       client.from('players').select('no, name, pos, can_bat, can_pitch, siblings, invite_code').eq('team_id', teamId).order('no'),
-      client.from('teams').select('name, invite_code_admin').eq('id', teamId).maybeSingle(),
+      client.from('teams').select('name, invite_code_admin, invite_code_recorder, temp_recorder_id').eq('id', teamId).maybeSingle(),
       client.from('profiles').select('id, nickname, linked_players, staff_title').eq('team_id', teamId).eq('role', 'parent'),
       client.from('profiles').select('id, nickname, staff_title, player_no').eq('team_id', teamId).eq('role', 'staff'),
+      client.from('profiles').select('id, nickname').eq('team_id', teamId).eq('role', 'recorder'),
     ]);
     var gamesRaw = results[0].data || [];
     var batLogRaw = results[1].data || [];
@@ -207,8 +210,11 @@ var SB = {
     var rosterRaw = results[4].data || [];
     var teamName = (results[5].data && results[5].data.name) || '';
     var teamInviteAdmin = (results[5].data && results[5].data.invite_code_admin) || null;
+    var teamInviteRecorder = (results[5].data && results[5].data.invite_code_recorder) || null;
+    var tempRecorderId = (results[5].data && results[5].data.temp_recorder_id) || null;
     var parentProfilesRaw = results[6].data || [];
     var staffProfilesRaw = results[7].data || [];
+    var recorderProfilesRaw = results[8] ? (results[8].data || []) : [];
 
     var games = gamesRaw.map(function (g) {
       return { id: g.id, date: g.date, opp: g.opponent, type: g.type || 'R', no: g.game_no || 1, status: g.status };
@@ -231,8 +237,11 @@ var SB = {
     var staffProfiles = staffProfilesRaw.map(function (p) {
       return { id: p.id, nickname: p.nickname || '', staffTitle: p.staff_title || '', playerNo: p.player_no || null };
     });
+    var recorderProfiles = recorderProfilesRaw.map(function (p) {
+      return { id: p.id, nickname: p.nickname || '' };
+    });
 
-    return { games: games, bat_log: bat_log, pit_bf: pit_bf, pit_runs: pit_runs, roster: roster, teamName: teamName, teamInviteAdmin: teamInviteAdmin, parentProfiles: parentProfiles, staffProfiles: staffProfiles };
+    return { games: games, bat_log: bat_log, pit_bf: pit_bf, pit_runs: pit_runs, roster: roster, teamName: teamName, teamInviteAdmin: teamInviteAdmin, teamInviteRecorder: teamInviteRecorder, tempRecorderId: tempRecorderId, parentProfiles: parentProfiles, staffProfiles: staffProfiles, recorderProfiles: recorderProfiles };
   },
 
   /** 경기 upsert — 앱 필드를 DB 필드로 매핑 */
@@ -326,6 +335,17 @@ var SB = {
     if (window.PERM && window.PERM.parent) return;
     var { error } = await client.from('pit_runs').delete().eq('id', id);
     if (error) console.warn('[SB] deletePitRun 오류', error);
+  },
+
+  /** 임시 기록자 지정/해제 */
+  setTempRecorder: async function (teamId, profileId) {
+    var client = window.SupabaseClient;
+    if (!client) return;
+    var { error } = await client.rpc('set_temp_recorder', { p_team_id: teamId, p_profile_id: profileId || null });
+    if (error) {
+      console.warn('[SB] setTempRecorder 오류', error);
+      if (window.toast) window.toast('임시 기록자 저장 실패', 'err');
+    }
   },
 
   /** 선수 명단 배치 upsert */
