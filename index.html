@@ -1,4 +1,4 @@
-<!-- version: 2026-05-18 -->
+<!-- version: 2026-05-26 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="모야모야">
 <meta name="theme-color" content="#1B3A6B">
 <title>⚾ 모야모야-우리아이 야구 기록 Ball Matrix</title>
-<!-- version: 2026-05-18 -->
+<!-- version: 2026-05-26 -->
 <style>
 :root{--navy:#1B3A6B;--red:#922B21;--bg:#f9fafb;--card:#ffffff;--bg2:#f3f4f6;--txt:#111827;--txt2:#4b5563;--bdr:#e5e7eb;--bdr2:#d1d5db;--r:8px;--rl:12px;--sfb:env(safe-area-inset-bottom,0px);}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -218,7 +218,7 @@ tr:nth-child(even) td{background:var(--bg2)}
 /* ── iPad 입력탭 2단 레이아웃 (iOS 전용, body.ipad-2col) ───────── */
 body.ipad-2col #app{max-width:100%;display:grid;grid-template-columns:380px 1fr;grid-template-rows:auto 1fr;}
 body.ipad-2col #ghdr{grid-column:1;grid-row:1/3;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--bdr);background:var(--bg);}
-body.ipad-2col #tbr{grid-column:2;grid-row:1;border-top:none;border-bottom:1px solid var(--bdr);padding-bottom:0;padding-top:8px;}
+body.ipad-2col #tbr{grid-column:2;grid-row:1;border-top:none;border-bottom:1px solid var(--bdr);padding-bottom:0;padding-top:calc(8px + env(safe-area-inset-top,0px));}
 body.ipad-2col .tab{padding:8px 4px 9px;}
 body.ipad-2col #ct{grid-column:2;grid-row:2;overflow-y:auto;}
 /* ── iPad 우측 패널 조정 ─────────────────────────────────── */
@@ -229,6 +229,13 @@ body.ipad-2col .pn{font-size:14px}
 body.ipad-2col .pp{font-size:12px}
 body.ipad-2col .ocbtn{min-height:58px;font-size:14px}
 body.ipad-2col .ocgrid{gap:8px}
+body.ipad-mode #app{max-width:100%}
+.ipad-md-wrap{display:flex;align-items:flex-start}
+.ipad-md-left{width:300px;flex-shrink:0;border-right:1px solid var(--bdr);min-height:50vh}
+.ipad-md-right{flex:1;min-width:0;overflow:hidden}
+.ipad-2p-wrap{display:flex;align-items:flex-start}
+.ipad-2p-left{width:280px;flex-shrink:0;border-right:1px solid var(--bdr);padding:0}
+.ipad-2p-right{flex:1;min-width:0}
 </style>
 <script src="capacitor.js"></script>
 <script src="supabase-client.js"></script>
@@ -249,7 +256,7 @@ function isTablet(){
   return typeof Capacitor!=='undefined'&&typeof Capacitor.getPlatform==='function'&&Capacitor.getPlatform()==='ios'&&window.innerWidth>=768;
 }
 function isIPadInput(){return isTablet()&&(S.tab===0||S.tab===1);}
-function applyIPadClass(){document.body.classList.toggle('ipad-2col',isIPadInput());}
+function applyIPadClass(){var t=isTablet();document.body.classList.toggle('ipad-2col',t&&(S.tab===0||S.tab===1));document.body.classList.toggle('ipad-mode',t);}
 window.addEventListener('resize',function(){clearTimeout(window._rszT);window._rszT=setTimeout(function(){r();},200);});
 // ── 선수 명단 ─────────────────────────────────────────────
 let ROSTER=[
@@ -1279,20 +1286,24 @@ function renderGHdr(){
         +'</div></div>';
     }else{
       // ── 세로(포트레이트) 모드: 3단 분리 구조 ──
-      // ① 네이비 헤더
+      // ① 네이비 헤더 — title/sub 직접 ghdr flex 자식으로, gh-right 우측 끝
       hdrHtml='<div class="ghdr" style="flex-shrink:0;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 12px">'
-        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">'
-        +'<div><div class="gh-title">'+(S.game?'vs '+esc(S.game.opp):'⚾ 모야모야')+'</div>'
+        +'<div style="min-width:0;flex:1"><div class="gh-title">'+(S.game?'vs '+esc(S.game.opp):'⚾ 모야모야')+'</div>'
         +'<div class="gh-sub" style="margin-top:2px">'+(S.game?esc(S.game.date)+' '+typeBadge:'')+(isFirstVisit&&!S.game?'설정 탭에서 시작하세요':'')+'</div>'
         +'</div>'
         +'<div class="gh-right" style="flex-shrink:0">'+btns+'</div>'
-        +'</div></div>'
-      // ② 점수 카드 (경기 중일 때만)
+        +'</div>'
+      // ② 점수 카드 (경기 중일 때만): 이닝(▲/▼) 왼쪽, 우리/상대 레이블
       +(sc?'<div style="flex-shrink:0;background:var(--card);padding:14px 16px;border-bottom:1px solid var(--bdr)">'
-        +'<span style="font-size:38px;font-weight:800;letter-spacing:4px;color:var(--txt);line-height:1">'+sc.our+' : '+sc.opp+'</span>'
-        +'<div style="display:flex;align-items:center;gap:10px;margin-top:8px">'
-        +'<span style="background:var(--navy);color:#fff;border-radius:var(--r);padding:3px 10px;font-size:12px;font-weight:700">'+innDisp+'</span>'
-        +'</div></div>':'');
+        +'<div style="display:flex;align-items:center;gap:14px">'
+        +'<span style="background:var(--navy);color:#fff;border-radius:var(--r);padding:6px 14px;font-size:18px;font-weight:700;flex-shrink:0">'+innDisp+'</span>'
+        +'<div style="display:flex;align-items:flex-end;gap:6px">'
+        +'<div style="text-align:center"><div style="font-size:42px;font-weight:800;line-height:1;color:var(--txt)">'+sc.our+'</div>'
+        +'<div style="font-size:12px;color:var(--txt2);font-weight:600;margin-top:3px">우리</div></div>'
+        +'<div style="font-size:34px;font-weight:700;color:var(--txt2);padding-bottom:18px">:</div>'
+        +'<div style="text-align:center"><div style="font-size:42px;font-weight:800;line-height:1;color:var(--txt)">'+sc.opp+'</div>'
+        +'<div style="font-size:12px;color:var(--txt2);font-weight:600;margin-top:3px">상대</div></div>'
+        +'</div></div></div>':'');
     }
   }else{
     // ── 모바일: 기존 가로 헤더 ──
@@ -1613,6 +1624,8 @@ function rLog(){
       if(!gameMap[dd])gameMap[dd]=g;
     }
   });
+  const noDateGames=allGames.filter(g=>!g.date||!g.date.match(/^\d{4}-\d{2}-\d{2}$/));
+  if(isTablet())return rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,daysInMon,gameMap,noDateGames);
 
   // 달력 렌더
   const DOW=['일','월','화','수','목','금','토'];
@@ -1722,7 +1735,6 @@ function rLog(){
   h+='</div>';
 
   // 날짜 없거나 빈 경기 복구 섹션
-  const noDateGames=allGames.filter(g=>!g.date||!g.date.match(/^\d{4}-\d{2}-\d{2}$/));
   if(noDateGames.length){
     h+='<div style="margin:8px 12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--rl);padding:12px 14px">';
     h+='<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">⚠ 달력에 표시되지 않은 경기 ('+noDateGames.length+'개)</div>';
@@ -1936,6 +1948,271 @@ function rLog(){
     }
   }
   return h;
+}
+
+function rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,daysInMon,gameMap,noDateGames){
+  var canEdit=PERM.canEdit;
+  var DOW=['일','월','화','수','목','금','토'];
+  var h='<div class="cal-wrap">';
+  h+='<div class="cal-nav">'
+    +'<button onclick="S.calMonth=&apos;'+prevMon+'&apos;;S.logGameId=null;renderCt()">&#8249;</button>'
+    +'<span>'+calY+'년 '+calM+'월</span>'
+    +'<button onclick="S.calMonth=&apos;'+nextMon+'&apos;;S.logGameId=null;renderCt()">&#8250;</button>'
+    +'</div>';
+  h+='<div class="cal-grid">';
+  DOW.forEach(function(d,i){
+    h+='<div class="cal-dow" style="color:'+(i===0?'#ef4444':i===6?'#3b82f6':'var(--txt2)')+'">'+d+'</div>';
+  });
+  for(var ei=0;ei<firstDow;ei++)h+='<div class="cal-cell"></div>';
+  for(var day=1;day<=daysInMon;day++){
+    var ds=String(day).padStart(2,'0');
+    var g=gameMap[ds];
+    var isSel=g&&g.id===selGid;
+    var isOff=g&&(g.type||'O')==='O';
+    var dow=new Date(calY,calM-1,day).getDay();
+    var dc=dow===0?'#ef4444':dow===6?'#3b82f6':'var(--txt)';
+    var isCurG=g&&S.game&&g.id===S.game.id;
+    h+='<div class="cal-cell'+(g?' has-game':'')+(isSel?' selected':'')+'"'
+      +(g?' onclick="var _gid=&apos;'+g.id+'&apos;;S.logGameId=(_gid===S.logGameId?null:_gid);S.calMonth=&apos;'+calMon+'&apos;;S.logExpanded={};S.pitExpanded={};S.logSection=&apos;bat&apos;;renderCt()"':'')+' >';
+    h+='<span class="cal-day" style="color:'+dc+'">'+(isCurG?'<strong>'+day+'</strong>':day)+'</span>';
+    if(g)h+='<span class="cal-dot" style="background:'+(isOff?'var(--navy)':'#16a34a')+'"></span>';
+    h+='</div>';
+  }
+  h+='</div>';
+  h+='<div class="cal-legend">'
+    +'<span><span class="cal-dot" style="background:var(--navy);display:inline-block"></span>정식경기</span>'
+    +'<span><span class="cal-dot" style="background:#16a34a;display:inline-block"></span>연습경기</span>'
+    +'</div>';
+  h+='</div>';
+
+  var monGames=allGames.filter(function(gg){return gg.date&&gg.date.slice(0,7)===calMon;});
+  var listH='';
+  if(!monGames.length){
+    listH+='<div style="padding:20px 14px;text-align:center;font-size:12px;color:var(--txt2)">이 달 경기 없음</div>';
+  } else {
+    monGames.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date));}).forEach(function(gg){
+      var isSel2=gg.id===selGid;
+      var sc2=gameScore(gg.id);
+      var isOff2=(gg.type||'O')==='O';
+      var dp=gg.date?gg.date.split('-'):[];
+      var dsp=dp.length===3?(parseInt(dp[1])+'월 '+parseInt(dp[2])+'일'):'?';
+      var dow2=dp.length===3?['일','월','화','수','목','금','토'][new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2])).getDay()]:'';
+      listH+='<div onclick="var _gid=&apos;'+gg.id+'&apos;;S.logGameId=(_gid===S.logGameId?null:_gid);S.logExpanded={};S.pitExpanded={};S.logSection=&apos;bat&apos;;renderCt()" style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;background:'+(isSel2?'#EBF0FB':'transparent')+'">';
+      listH+='<div style="width:5px;height:5px;border-radius:50%;background:'+(isOff2?'var(--navy)':'#16a34a')+';flex-shrink:0"></div>';
+      listH+='<div style="flex:1;min-width:0">';
+      listH+='<div style="font-size:12px;font-weight:'+(isSel2?'700':'600')+';color:'+(isSel2?'var(--navy)':'var(--txt)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">vs '+esc(gg.opp)+'</div>';
+      listH+='<div style="font-size:11px;color:var(--txt2)">'+dsp+' ('+dow2+')</div>';
+      listH+='</div>';
+      if(sc2.has){
+        var selWin2=sc2.our>sc2.opp,selLose2=sc2.our<sc2.opp;
+        listH+='<div style="font-size:12px;font-weight:700;color:'+(selWin2?'#16a34a':selLose2?'#dc2626':'var(--txt2)')+'">'+sc2.our+':'+sc2.opp+'</div>';
+      }
+      listH+='</div>';
+    });
+  }
+  if(noDateGames.length){
+    listH+='<div style="margin:8px;background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r);padding:10px 12px">';
+    listH+='<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px">⚠ 날짜 없는 경기 ('+noDateGames.length+'개)</div>';
+    noDateGames.forEach(function(gg){
+      listH+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0">'
+        +'<span style="font-size:12px;color:var(--txt);flex:1">vs '+esc(gg.opp||'?')+'</span>'
+        +(PERM.canManageGame?'<button onclick="showEditGameModal(&apos;'+gg.id+'&apos;)" style="font-size:11px;padding:3px 8px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);cursor:pointer;font-family:inherit">수정</button>':'')
+        +'</div>';
+    });
+    listH+='</div>';
+  }
+
+  var rightH='';
+  if(!selGid){
+    rightH='<div style="padding:48px 24px;text-align:center;color:var(--txt2)">'
+      +'<div style="font-size:32px;margin-bottom:12px">📋</div>'
+      +'<div style="font-size:14px;font-weight:600">경기를 선택하세요</div>'
+      +'<div style="font-size:12px;margin-top:6px">달력 또는 왼쪽 목록에서 경기 날짜를 선택하면<br>상세 기록이 여기에 표시됩니다.</div>'
+      +'</div>';
+  } else {
+    var selGame=allGames.find(function(gg){return gg.id===selGid;});
+    if(!selGame){
+      rightH='<div class="empty" style="padding:24px">경기 정보를 찾을 수 없습니다.</div>';
+    } else {
+      var sd=selGame.date||'';
+      var sdParts=sd.split('-');
+      var sdow=sd?['일','월','화','수','목','금','토'][new Date(parseInt(sdParts[0]),parseInt(sdParts[1])-1,parseInt(sdParts[2])).getDay()]:'';
+      var isOffSel=(selGame.type||'O')==='O';
+      var isCurSel=S.game&&S.game.id===selGid;
+      var selSc=gameScore(selGid);
+      if(selSc.has){
+        var selWin=selSc.our>selSc.opp,selLose=selSc.our<selSc.opp;
+        rightH+='<div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 0 8px;border-bottom:1px solid var(--bdr);margin-bottom:8px">'
+          +'<div style="text-align:center"><div style="font-size:11px;color:var(--txt2);margin-bottom:2px">우리팀</div>'
+          +'<div style="font-size:32px;font-weight:900;color:'+(selWin?'#16a34a':'var(--txt)')+'">'+selSc.our+'</div></div>'
+          +'<div style="text-align:center"><div style="font-size:14px;font-weight:700;padding:4px 10px;border-radius:6px;background:'+(selWin?'#dcfce7':selLose?'#fee2e2':'var(--bg2)')+';color:'+(selWin?'#15803d':selLose?'#dc2626':'var(--txt2)')+';">'+(selWin?'승':selLose?'패':'무')+'</div></div>'
+          +'<div style="text-align:center"><div style="font-size:11px;color:var(--txt2);margin-bottom:2px">상대팀</div>'
+          +'<div style="font-size:32px;font-weight:900;color:'+(selLose?'#dc2626':'var(--txt)')+'">'+selSc.opp+'</div></div>'
+          +'</div>';
+      }
+      rightH+='<div class="cal-sum-date" style="padding:0 14px 6px">';
+      if(sd)rightH+=parseInt(sdParts[1])+'월 '+parseInt(sdParts[2])+'일 ('+sdow+') &nbsp;';
+      rightH+='vs '+esc(selGame.opp);
+      rightH+=' <span style="background:'+(isOffSel?'#EBF0FB':'#dcfce7')+';color:'+(isOffSel?'var(--navy)':'#15803d')+';border-radius:4px;padding:1px 8px;font-size:11px;font-weight:600">'+(isOffSel?'정식':'연습')+'</span>';
+      if(selGame.status==='active'||(selGame.status===undefined&&isCurSel))
+        rightH+=' <span style="background:#fee2e2;color:#b91c1c;border-radius:4px;padding:1px 8px;font-size:11px;font-weight:700">진행중</span>';
+      else if(selGame.status==='ended')
+        rightH+=' <span style="background:#f3f4f6;color:#6b7280;border-radius:4px;padding:1px 8px;font-size:11px;font-weight:600">종료</span>';
+      if(PERM.canManageGame){
+        rightH+='<button onclick="showEditGameModal(&apos;'+selGid+'&apos;)" style="margin-left:auto;background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:3px 10px;font-size:11px;color:var(--txt2);cursor:pointer;font-family:inherit;flex-shrink:0">✏ 수정</button>';
+        if(selGame.status==='active')
+          rightH+='<button onclick="forceEndGame(&apos;'+selGid+'&apos;)" style="background:none;border:1px solid #fbbf24;border-radius:var(--r);padding:3px 10px;font-size:11px;color:#b45309;cursor:pointer;font-family:inherit;flex-shrink:0">⏹ 강제종료</button>';
+        else
+          rightH+='<button onclick="delGame(&apos;'+selGid+'&apos;)" style="background:none;border:1px solid #fca5a5;border-radius:var(--r);padding:3px 10px;font-size:11px;color:#dc2626;cursor:pointer;font-family:inherit;flex-shrink:0">🗑 삭제</button>';
+      }
+      rightH+='</div>';
+      if(canEdit){
+        rightH+='<div style="display:flex;gap:8px;margin:0 14px 10px">'
+          +'<button onclick="startAddToGame(&apos;'+selGid+'&apos;,&apos;bat&apos;)" style="flex:1;background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:9px 0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">⚾ 타자 기록 추가</button>'
+          +'<button onclick="startAddToGame(&apos;'+selGid+'&apos;,&apos;pit&apos;)" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:var(--r);padding:9px 0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">🎯 투수 기록 추가</button>'
+          +'</div>';
+      }
+      var be2=S.blog.filter(function(e){return e.gid===selGid;});
+      var pbf2=S.pit_bf.filter(function(e){return e.gid===selGid;});
+      var pr2=S.pit_runs.filter(function(e){return e.gid===selGid;});
+      var myHighlight2=PERM.parent?Number(activeNo()):null;
+      if(!be2.length&&!pbf2.length){
+        rightH+='<div class="empty" style="padding:24px">이 경기의 기록이 없습니다.</div>';
+      } else {
+        var logSec=S.logSection||'bat';
+        var secTabS='flex:1;padding:12px 0;border:none;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--txt2);';
+        rightH+='<div style="display:flex;border-bottom:1px solid var(--bdr);margin:0 0 4px">'
+          +'<button onclick="S.logSection=&apos;bat&apos;;renderCt()" style="'+secTabS+(logSec==='bat'?'border-bottom-color:var(--navy);color:var(--navy)':'')+'">⚾ 타자 기록'+(be2.length?' ('+be2.length+')':'')+'</button>'
+          +'<button onclick="S.logSection=&apos;pit&apos;;renderCt()" style="'+secTabS+(logSec==='pit'?'border-bottom-color:var(--red);color:var(--red)':'')+'">🎯 투수 기록'+(pbf2.length?' ('+pbf2.length+')':'')+'</button>'
+          +'</div>';
+        if(logSec==='bat'&&be2.length){
+          var logView2=S.logView||'seq';
+          var aBtnS='border:none;border-radius:var(--r);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-height:36px;';
+          var aBtnOff='background:#e5e7eb;color:#111827;';
+          rightH+='<div class="seclbl" style="display:flex;align-items:center;gap:6px">'
+            +'<span style="flex:1">타자 기록 ('+be2.length+'타석)</span>'
+            +'<button onclick="S.logView=&apos;seq&apos;;renderCt()" style="'+aBtnS+(logView2==='seq'?'background:var(--navy);color:#fff':aBtnOff)+'">타석순</button>'
+            +'<button onclick="S.logView=&apos;player&apos;;renderCt()" style="'+aBtnS+(logView2==='player'?'background:var(--navy);color:#fff':aBtnOff)+'">선수별</button>'
+            +'</div>';
+          if(logView2==='seq'){
+            be2.slice().reverse().forEach(function(e){
+              var oc=ocInfo(e.oc);var ex=[];
+              if(e.rbi>0)ex.push(e.rbi+'타점');if(e.run>0)ex.push(e.run+'득점');if(e.sb>0)ex.push('도루');if(e.zone)ex.push('📍'+e.zone);
+              var sy=S.syncedIds.has(e.id);var isMyChild=myHighlight2&&Number(e.pno)===myHighlight2;
+              var _bp=ROSTER.find(function(x){return x.no===e.pno;})||{name:'#'+e.pno};
+              rightH+='<div class="logitem" style="'+(isMyChild?'background:#EBF4FF;border-left:3px solid var(--navy);':'')+'"">'
+                +'<div class="logbadge" style="background:'+oc.bg+';color:'+oc.fg+';font-size:10px">'+oc.l+'</div>'
+                +'<div style="flex:1;min-width:0"><div class="logplayer">'+esc(_bp.name)+(isMyChild?' <span style="font-size:10px;background:var(--navy);color:#fff;padding:1px 5px;border-radius:3px;font-weight:700">★ 우리 아이</span>':'')+' <span style="font-size:10px;color:'+(sy?'#15803d':'#f59e0b')+'">'+(sy?'✓':'●')+'</span></div>'
+                +'<div class="logdetail">'+(ex.length?ex.join(' · '):'—')+'</div></div>'
+                +(canEdit?'<button onclick="showEditBatModal(&apos;'+e.id+'&apos;)" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:5px 8px;font-size:11px;color:var(--txt2);cursor:pointer;margin-right:4px;font-family:inherit">✏</button>'
+                +'<button class="delbtn" onclick="del(&apos;b&apos;,&apos;'+e.id+'&apos;)">✕</button>':'')
+                +'</div>';
+            });
+          } else {
+            var pGroups2={},pOrder2=[];
+            be2.forEach(function(e){if(!pGroups2[e.pno]){pGroups2[e.pno]=[];pOrder2.push(e.pno);}pGroups2[e.pno].push(e);});
+            if(myHighlight2)pOrder2.sort(function(a,b){return a===myHighlight2?-1:b===myHighlight2?1:0;});
+            pOrder2.forEach(function(pno){
+              var entries=pGroups2[pno];
+              var rp=ROSTER.find(function(x){return x.no===pno;})||{name:'#'+pno,no:pno};
+              var ab2=0,hits2=0,rbi2=0,run2=0,sb2=0;
+              entries.forEach(function(e){var s=paS(e.oc);ab2+=s.ab;hits2+=s.h;rbi2+=(e.rbi||0);run2+=(e.run||0);sb2+=(e.sb||0);});
+              var avg2=ab2>0?(hits2/ab2).toFixed(3).replace(/^0/,''):'.000';
+              var isExp2=!!(S.logExpanded&&S.logExpanded[String(pno)]);
+              var isMyChild2=myHighlight2&&Number(pno)===myHighlight2;
+              rightH+='<div class="logitem" style="flex-direction:column;align-items:stretch;gap:0;padding:10px 12px;'+(isMyChild2?'background:#EBF4FF;border-left:3px solid var(--navy);':'')+'">'
+                +'<div onclick="toggleLogPlayer('+pno+')" style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+                +'<div class="logbadge" style="background:var(--navy);color:#fff;font-size:11px">#'+pno+'</div>'
+                +'<div style="flex:1;min-width:0"><div class="logplayer">'+esc(rp.name)+(isMyChild2?' <span style="font-size:10px;background:var(--navy);color:#fff;padding:1px 5px;border-radius:3px;font-weight:700">★ 우리 아이</span>':'')+'</div>'
+                +'<div class="logdetail">'+ab2+'타수 '+hits2+'안타 '+avg2+(rbi2?' · '+rbi2+'타점':'')+(run2?' · '+run2+'득점':'')+(sb2?' · '+sb2+'도루':'')+'</div></div>'
+                +'<span style="font-size:14px;color:var(--txt2);flex-shrink:0">'+(isExp2?'▲':'▼')+'</span></div>';
+              if(isExp2){
+                rightH+='<div style="padding-top:8px;margin-top:8px;border-top:1px solid var(--bdr);display:flex;flex-direction:column;gap:6px">';
+                entries.slice().reverse().forEach(function(e){
+                  var oc2=ocInfo(e.oc);var ex2=[];
+                  if(e.rbi>0)ex2.push(e.rbi+'타점');if(e.run>0)ex2.push(e.run+'득점');if(e.sb>0)ex2.push('도루');if(e.zone)ex2.push('📍'+e.zone);
+                  var sy2=S.syncedIds.has(e.id);
+                  rightH+='<div style="display:flex;align-items:center;gap:8px">'
+                    +'<div class="logbadge" style="background:'+oc2.bg+';color:'+oc2.fg+';font-size:10px;flex-shrink:0">'+oc2.l+'</div>'
+                    +'<div style="flex:1;min-width:0"><div class="logdetail" style="font-size:12px">'+(ex2.length?ex2.join(' · '):'—')+' <span style="color:'+(sy2?'#15803d':'#f59e0b')+'">'+(sy2?'✓':'●')+'</span></div></div>'
+                    +(canEdit?'<button onclick="showEditBatModal(&apos;'+e.id+'&apos;)" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:7px 10px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit;flex-shrink:0;min-height:36px">✏</button>'
+                    +'<button class="delbtn" onclick="del(&apos;b&apos;,&apos;'+e.id+'&apos;)" style="flex-shrink:0;min-height:36px;min-width:36px">✕</button>':'')
+                    +'</div>';
+                });
+                rightH+='</div>';
+              }
+              rightH+='</div>';
+            });
+          }
+        }
+        if(logSec==='bat'&&!be2.length)rightH+='<div class="empty" style="padding:32px 24px">이 경기의 타자 기록이 없습니다.</div>';
+        if(logSec==='pit'&&!pbf2.length)rightH+='<div class="empty" style="padding:32px 24px">이 경기의 투수 기록이 없습니다.</div>';
+        if(logSec==='pit'&&pbf2.length){
+          var pitView2=S.logPitView||'player';
+          var pBtnS='border:none;border-radius:var(--r);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-height:36px;';
+          var pBtnOff='background:#e5e7eb;color:#111827;';
+          rightH+='<div class="seclbl" style="display:flex;align-items:center;gap:6px">'
+            +'<span style="flex:1">투수 기록 ('+pbf2.length+'타자 상대)</span>'
+            +'<button onclick="S.logPitView=&apos;seq&apos;;renderCt()" style="'+pBtnS+(pitView2==='seq'?'background:var(--red);color:#fff':pBtnOff)+'">투구순</button>'
+            +'<button onclick="S.logPitView=&apos;player&apos;;renderCt()" style="'+pBtnS+(pitView2==='player'?'background:var(--red);color:#fff':pBtnOff)+'">투수별</button>'
+            +'</div>';
+          if(pitView2==='seq'){
+            pbf2.slice().reverse().forEach(function(e){
+              var oc3=ocInfo(e.oc);var sy3=S.syncedIds.has(e.id);
+              var _pp=ROSTER.find(function(x){return x.no===e.pno;})||{name:'#'+e.pno};
+              rightH+='<div class="logitem">'
+                +'<div class="logbadge" style="background:'+oc3.bg+';color:'+oc3.fg+';font-size:10px">'+oc3.l+'</div>'
+                +'<div style="flex:1;min-width:0"><div class="logplayer">'+esc(_pp.name)+' <span style="font-size:10px;color:'+(sy3?'#15803d':'#f59e0b')+'">'+(sy3?'✓':'●')+'</span></div></div>'
+                +(canEdit?'<button onclick="showEditPitBfModal(&apos;'+e.id+'&apos;)" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:7px 10px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit;min-height:36px">✏</button>'
+                +'<button onclick="del(&apos;pbf&apos;,&apos;'+e.id+'&apos;)" style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:18px;line-height:1;min-height:36px;min-width:36px">✕</button>':'')
+                +'</div>';
+            });
+          } else {
+            var pnos2=[...new Set(pbf2.map(function(e){return e.pno;}))];
+            if(myHighlight2)pnos2.sort(function(a,b){return a===myHighlight2?-1:b===myHighlight2?1:0;});
+            pnos2.forEach(function(pno){
+              var rp2=ROSTER.find(function(x){return x.no===pno;})||{name:'#'+pno,no:pno};
+              var st2=calcPitStats(pno,selGid);
+              var pitRuns2=pr2.filter(function(e){return e.pno===pno;});
+              var isPExp2=!!(S.pitExpanded&&S.pitExpanded[String(pno)]);
+              rightH+='<div class="logitem" style="flex-direction:column;align-items:stretch;gap:0;padding:10px 12px">'
+                +'<div onclick="togglePitPlayer('+pno+')" style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+                +'<div class="logbadge" style="background:var(--red);color:#fff;font-size:11px">#'+pno+'</div>'
+                +'<div style="flex:1;min-width:0"><div class="logplayer">'+esc(rp2.name)+'</div>'
+                +'<div class="logdetail">'+st2.ipd+'이닝 · '+st2.h+'H · '+st2.er+'ER · '+st2.bb+'BB · '+st2.k+'K</div></div>'
+                +'<span style="font-size:14px;color:var(--txt2);flex-shrink:0">'+(isPExp2?'▲':'▼')+'</span></div>';
+              if(pitRuns2.length){
+                rightH+='<div style="font-size:12px;color:var(--txt2);padding:6px 0 2px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">실점: ';
+                pitRuns2.forEach(function(r){
+                  rightH+='<span '+(canEdit?'onclick="showEditPitRunModal(&apos;'+r.id+'&apos;)" style="cursor:pointer;':'style="')+'display:inline-block;background:'+(r.earned?'#fee2e2':'var(--bg2)')+';color:'+(r.earned?'#b91c1c':'var(--txt2)')+';border-radius:4px;padding:5px 10px;font-size:12px;font-weight:600">'+(r.earned?'자책':'비자책')+(canEdit?' ✏':'')+'</span>';
+                });
+                rightH+='</div>';
+              }
+              if(isPExp2){
+                rightH+='<div style="padding-top:8px;margin-top:4px;border-top:1px solid var(--bdr);display:flex;flex-direction:column;gap:6px">';
+                pbf2.filter(function(e){return e.pno===pno;}).slice().reverse().forEach(function(e){
+                  var oc4=ocInfo(e.oc);var sy4=S.syncedIds.has(e.id);
+                  rightH+='<div style="display:flex;align-items:center;gap:8px">'
+                    +'<div class="logbadge" style="background:'+oc4.bg+';color:'+oc4.fg+';font-size:10px;flex-shrink:0">'+oc4.l+'</div>'
+                    +'<div style="flex:1;min-width:0"><div class="logdetail" style="font-size:12px"><span style="color:'+(sy4?'#15803d':'#f59e0b')+'">'+(sy4?'✓':'●')+'</span></div></div>'
+                    +(canEdit?'<button onclick="showEditPitBfModal(&apos;'+e.id+'&apos;)" style="background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:7px 10px;font-size:12px;color:var(--txt2);cursor:pointer;font-family:inherit;flex-shrink:0;min-height:36px">✏</button>'
+                    +'<button onclick="del(&apos;pbf&apos;,&apos;'+e.id+'&apos;)" style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:18px;line-height:1;flex-shrink:0;min-height:36px;min-width:36px">✕</button>':'')
+                    +'</div>';
+                });
+                rightH+='</div>';
+              }
+              rightH+='</div>';
+            });
+          }
+        }
+      }
+    }
+  }
+  return h
+    +'<div class="ipad-md-wrap">'
+    +'<div class="ipad-md-left">'+listH+'</div>'
+    +'<div class="ipad-md-right">'+rightH+'</div>'
+    +'</div>';
 }
 
 // 월간 전체 기록 뷰
@@ -2152,6 +2429,7 @@ function rStats(){
   }
 
   // 역할별 테이블 행 필터
+
   var bsk=isAdmin&&S.batSortKey?S.batSortKey:null;
   var bsd=S.batSortDir||'desc';
   const batRows=(isAdmin?bs:bs.filter(s=>Number(s.no)===myNo)).slice().sort(function(a,b){
@@ -2164,6 +2442,8 @@ function rStats(){
     if(psk){var av=isNaN(a[psk])||!isFinite(a[psk])?999:(a[psk]||0);var bv=isNaN(b[psk])||!isFinite(b[psk])?999:(b[psk]||0);return psd==='desc'?bv-av:av-bv;}
     var ae=(!isFinite(a.era)||isNaN(a.era))?999:a.era;var be=(!isFinite(b.era)||isNaN(b.era))?999:b.era;return ae-be;
   });
+
+  if(isTablet())return rStatsIPad(h,st,bs,ps,batRows,pitRows,bsk,bsd,psk,psd,isAdmin,myNo,myName,myBatSt,myPitSt,saberFocusNo,pitSaberFocusNo,showAll,pitShowAll,tbtn);
 
   if(st===0){
     // ── 타자 ────────────────────────────────────────────────
@@ -2250,6 +2530,84 @@ function rStats(){
     }
   }
   return h;
+}
+function rStatsIPad(topH,st,bs,ps,batRows,pitRows,bsk,bsd,psk,psd,isAdmin,myNo,myName,myBatSt,myPitSt,saberFocusNo,pitSaberFocusNo,showAll,pitShowAll,tbtn){
+  var leftH='',rightH='';
+  if(st===0){
+    if(!bs.length||!batRows.length){
+      leftH='<div class="empty" style="padding:24px">'+((!isAdmin&&myNo&&!myBatSt)?rNoRecMsg(myName,'타자'):'타자 기록이 없습니다.')+'</div>';
+      rightH='';
+    } else {
+      var activeSprayNo=S.sprayPlayer!==null?S.sprayPlayer:(isAdmin&&myBatSt?Number(myBatSt.no):null);
+      leftH+='<div style="padding:10px 12px 6px;font-size:11px;font-weight:700;color:var(--txt2);letter-spacing:.5px">⚾ 타자 선수 목록</div>';
+      leftH+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:2px solid var(--bdr)">'
+        +'<th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--txt2);font-weight:600;white-space:nowrap">선수</th>'
+        +'<th style="padding:6px 6px;font-size:11px;color:var(--txt2);font-weight:600">PA</th>'
+        +'<th style="padding:6px 6px;font-size:11px;color:var(--txt2);font-weight:600">AVG</th>'
+        +'<th style="padding:6px 6px;font-size:11px;color:var(--txt2);font-weight:600">OPS</th>'
+        +'</tr></thead><tbody>';
+      batRows.forEach(function(s){
+        var sel=Number(s.no)===activeSprayNo;
+        leftH+='<tr onclick="setSprayPlayer('+Number(s.no)+')" style="cursor:pointer;border-bottom:1px solid var(--bdr);background:'+(sel?'#EBF0FB':'transparent')+'">'
+          +'<td style="padding:9px 10px;font-weight:700;color:'+(sel?'var(--navy)':'var(--txt)')+'">'+esc(s.name)+'</td>'
+          +'<td style="padding:9px 6px;text-align:center;color:var(--txt2)">'+s.pa+'</td>'
+          +'<td style="padding:9px 6px;text-align:center;color:'+(sel?'var(--navy)':'var(--txt)')+';font-weight:600">'+s.avg.toFixed(3).replace(/^0/,'')+'</td>'
+          +'<td style="padding:9px 6px;text-align:center;color:'+(sel?'var(--navy)':'var(--txt)')+';font-weight:600">'+(s.ops<0.001?'-':s.ops.toFixed(3))+'</td>'
+          +'</tr>';
+      });
+      leftH+='</tbody></table></div>';
+      if(activeSprayNo!==null){
+        var selSt=bs.find(function(s){return Number(s.no)===activeSprayNo;});
+        if(selSt)rightH+=rBatTile(selSt,activeSprayNo);
+        rightH+=rSprayChart(activeSprayNo);
+      } else {
+        rightH='<div style="padding:48px 24px;text-align:center;color:var(--txt2)">'
+          +'<div style="font-size:32px;margin-bottom:12px">📊</div>'
+          +'<div style="font-size:14px;font-weight:600">선수를 선택하세요</div>'
+          +'<div style="font-size:12px;margin-top:6px">왼쪽 목록에서 선수 이름을 탭하면<br>세이버매트릭스와 스프레이 차트가 표시됩니다.</div>'
+          +'</div>';
+      }
+    }
+  } else {
+    if(!ps.length||!pitRows.length){
+      leftH='<div class="empty" style="padding:24px">'+((!isAdmin&&myNo&&!myPitSt)?rNoRecMsg(myName,'투수'):'투수 기록이 없습니다.')+'</div>';
+      rightH='';
+    } else {
+      leftH+='<div style="padding:10px 12px 6px;font-size:11px;font-weight:700;color:var(--txt2);letter-spacing:.5px">🎯 투수 선수 목록</div>';
+      leftH+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:2px solid var(--bdr)">'
+        +'<th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--txt2);font-weight:600;white-space:nowrap">선수</th>'
+        +'<th style="padding:6px 6px;font-size:11px;color:var(--txt2);font-weight:600">IP</th>'
+        +'<th style="padding:6px 6px;font-size:11px;color:var(--txt2);font-weight:600">ERA</th>'
+        +'<th style="padding:6px 6px;font-size:11px;color:var(--txt2);font-weight:600">K</th>'
+        +'</tr></thead><tbody>';
+      pitRows.forEach(function(s){
+        var sel=Number(s.no)===pitSaberFocusNo;
+        var eraStr=(!isFinite(s.era)||isNaN(s.era))?'∞':s.era.toFixed(2);
+        leftH+='<tr onclick="setPitFocus('+Number(s.no)+')" style="cursor:pointer;border-bottom:1px solid var(--bdr);background:'+(sel?'#FEF2F2':'transparent')+'">'
+          +'<td style="padding:9px 10px;font-weight:700;color:'+(sel?'var(--red)':'var(--txt)')+'">'+esc(s.name)+'</td>'
+          +'<td style="padding:9px 6px;text-align:center;color:var(--txt2)">'+s.ipd+'</td>'
+          +'<td style="padding:9px 6px;text-align:center;color:'+(sel?'var(--red)':'var(--txt)')+';font-weight:600">'+eraStr+'</td>'
+          +'<td style="padding:9px 6px;text-align:center;color:#1d4ed8;font-weight:600">'+s.k+'</td>'
+          +'</tr>';
+      });
+      leftH+='</tbody></table></div>';
+      if(pitSaberFocusNo!==null){
+        var selPit=ps.find(function(s){return Number(s.no)===pitSaberFocusNo;});
+        if(selPit)rightH+=rPitTile(selPit,pitSaberFocusNo);
+      } else {
+        rightH='<div style="padding:48px 24px;text-align:center;color:var(--txt2)">'
+          +'<div style="font-size:32px;margin-bottom:12px">📈</div>'
+          +'<div style="font-size:14px;font-weight:600">선수를 선택하세요</div>'
+          +'<div style="font-size:12px;margin-top:6px">왼쪽 목록에서 선수 이름을 탭하면<br>세이버매트릭스가 표시됩니다.</div>'
+          +'</div>';
+      }
+    }
+  }
+  return topH
+    +'<div class="ipad-2p-wrap">'
+    +'<div class="ipad-2p-left">'+leftH+'</div>'
+    +'<div class="ipad-2p-right">'+rightH+'</div>'
+    +'</div>';
 }
 
 // ── 스프레이 차트 ─────────────────────────────────────────
@@ -2601,37 +2959,57 @@ function rSettings(){
       +'</div>';
   }
 
+  var teamCard='<div class="cfgcard">'
+    +'<div class="cfgtitle">🏫 학교 / 팀 정보</div>'
+    +'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+(S.schoolName||'(미설정)')+'</div>'
+    +'</div>';
+  var rosterSection=isAdmin
+    ?'<div class="cfgcard" style="margin-bottom:0">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div class="cfgtitle" style="margin-bottom:0">👥 선수 관리 ('+ROSTER.length+'명)</div>'
+      +'<button onclick="genAllPlayerCodes()" style="background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">전체 코드 생성</button>'
+      +'</div>'
+      +(function(){
+          var unlinked=(S.parentProfiles||[]).filter(function(pp){return!(pp.linkedPlayers||[]).length;});
+          if(!unlinked.length)return'';
+          return'<div onclick="showUnlinkedParentsModal()" style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:10px;background:#FFF8E1;border:1.5px solid #F59E0B;border-radius:var(--r);cursor:pointer">'
+            +'<span style="font-size:16px">⚠️</span>'
+            +'<div style="flex:1;font-size:12px;color:#B45309;font-weight:600">미연결 보호자 '+unlinked.length+'명 — 선수와 연결해주세요</div>'
+            +'<span style="font-size:12px;color:#B45309">›</span>'
+            +'</div>';
+        })()
+      +rRosterList()
+      +'<button onclick="showAddPlayerModal()" style="width:100%;padding:10px;margin-top:8px;border:1.5px dashed var(--bdr2);border-radius:var(--r);background:none;color:var(--navy);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit">＋ 선수 추가</button>'
+      +'</div>'
+    :'';
+
+  if(isTablet()){
+    var leftCol='<div style="padding:12px">'
+      +roleBadge+dupWarn+setupGuide+teamCard
+      +nicknameSection+staffSection+parentSection+myChildSection
+      +'</div>';
+    var rightCol=isAdmin
+      ?'<div style="padding:12px">'+rosterSection+'</div>'
+      :'<div style="padding:48px 24px;text-align:center;color:var(--txt2)">'
+        +'<div style="font-size:32px;margin-bottom:12px">👥</div>'
+        +'<div style="font-size:13px">학부모 모드에서는<br>선수 관리가 표시되지 않습니다.</div>'
+        +'</div>';
+    return'<div style="display:flex;align-items:flex-start">'
+      +'<div style="width:320px;flex-shrink:0;border-right:1px solid var(--bdr);min-height:60vh">'+leftCol+'</div>'
+      +'<div style="flex:1;min-width:0">'+rightCol+'</div>'
+      +'</div>';
+  }
+
   return'<div class="cfgwrap">'
     +roleBadge
     +dupWarn
     +setupGuide
-    +'<div class="cfgcard">'
-    +'<div class="cfgtitle">🏫 학교 / 팀 정보</div>'
-    +'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+(S.schoolName||'(미설정)')+'</div>'
-    +'</div>'
+    +teamCard
     +nicknameSection
     +staffSection
     +parentSection
     +myChildSection
-    +(isAdmin
-      ?'<div class="cfgcard" style="margin-bottom:0">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-        +'<div class="cfgtitle" style="margin-bottom:0">👥 선수 관리 ('+ROSTER.length+'명)</div>'
-        +'<button onclick="genAllPlayerCodes()" style="background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">전체 코드 생성</button>'
-        +'</div>'
-        +(function(){
-            var unlinked=(S.parentProfiles||[]).filter(function(pp){return!(pp.linkedPlayers||[]).length;});
-            if(!unlinked.length)return'';
-            return'<div onclick="showUnlinkedParentsModal()" style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:10px;background:#FFF8E1;border:1.5px solid #F59E0B;border-radius:var(--r);cursor:pointer">'
-              +'<span style="font-size:16px">⚠️</span>'
-              +'<div style="flex:1;font-size:12px;color:#B45309;font-weight:600">미연결 보호자 '+unlinked.length+'명 — 선수와 연결해주세요</div>'
-              +'<span style="font-size:12px;color:#B45309">›</span>'
-              +'</div>';
-          })()
-        +rRosterList()
-        +'<button onclick="showAddPlayerModal()" style="width:100%;padding:10px;margin-top:8px;border:1.5px dashed var(--bdr2);border-radius:var(--r);background:none;color:var(--navy);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit">＋ 선수 추가</button>'
-        +'</div>'
-      :'')
+    +rosterSection
     +'</div>';
 }
 function rRosterList(){
@@ -3250,44 +3628,44 @@ function rPitBaseDiagram(){
   if(!S.pitBases)S.pitBases={b1:null,b2:null,b3:null};
   function pitSlot(key,label){
     var runner=S.pitBases[key];
-    var h='<div style="text-align:center;min-width:90px">';
-    h+='<div style="font-size:11px;color:var(--txt2);margin-bottom:3px;font-weight:700;letter-spacing:.5px">'+label+'</div>';
+    var h='<div style="text-align:center;min-width:100px">';
+    h+='<div style="font-size:13px;color:var(--txt2);margin-bottom:4px;font-weight:700;letter-spacing:.5px">'+label+'</div>';
     if(runner!=null){
       var rc=runner.earned?'#dc2626':'#6b7280';
       var rb=runner.earned?'#fee2e2':'var(--bg2)';
       var inherited=runner.pno!=null&&runner.pno!==S.curPit;
       var runnerLbl=inherited?('전임·'+(runner.earned?'자책':'비자책')):(runner.earned?'자책':'비자책');
-      h+='<div style="background:'+rb+';color:'+rc+';border:1.5px solid '+rc+';border-radius:6px;padding:5px 4px;font-size:11px;font-weight:700">'+runnerLbl+'</div>';
-      h+='<div style="display:flex;gap:3px;margin-top:4px;justify-content:center">';
+      h+='<div style="background:'+rb+';color:'+rc+';border:1.5px solid '+rc+';border-radius:6px;padding:7px 6px;font-size:13px;font-weight:700">'+runnerLbl+'</div>';
+      h+='<div style="display:flex;gap:3px;margin-top:5px;justify-content:center">';
       if(key!=='b3'){
-        h+='<button onclick="pitRunnerScore(\''+key+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">득점</button>';
-        h+='<button onclick="pitRunnerSteal(\''+key+'\')" style="background:#2563eb;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">진루</button>';
+        h+='<button onclick="pitRunnerScore(\''+key+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">득점</button>';
+        h+='<button onclick="pitRunnerSteal(\''+key+'\')" style="background:#2563eb;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">진루</button>';
       }else{
-        h+='<button onclick="pitRunnerSteal(\'b3\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">홈인</button>';
+        h+='<button onclick="pitRunnerSteal(\'b3\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">홈인</button>';
       }
-      h+='<button onclick="pitRunnerOut(\''+key+'\')" style="background:#6b7280;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">아웃</button>';
+      h+='<button onclick="pitRunnerOut(\''+key+'\')" style="background:#525252;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">아웃</button>';
       h+='</div>';
     }else{
-      h+='<div style="border:2px dashed var(--bdr);border-radius:6px;height:34px;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:var(--bdr)">—</span></div>';
+      h+='<div style="border:2px dashed var(--bdr);border-radius:6px;height:42px;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;color:var(--bdr)">—</span></div>';
     }
     return h+'</div>';
   }
   var outs=S.pitOuts||0;
   var dots='';
-  for(var i=0;i<3;i++)dots+='<span style="width:11px;height:11px;border-radius:50%;background:'+(i<outs?'#dc2626':'var(--bdr)')+';display:inline-block;margin:0 2px"></span>';
+  for(var i=0;i<3;i++)dots+='<span style="width:13px;height:13px;border-radius:50%;background:'+(i<outs?'#dc2626':'var(--bdr)')+';display:inline-block;margin:0 2px"></span>';
   var innLbl=(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초');
-  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:12px;padding:2px 4px;cursor:pointer;line-height:1';
-  var h='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);margin:8px 12px;padding:12px">';
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
-  h+='<span style="font-size:11px;font-weight:700;color:var(--txt)">🎯 상대팀 베이스</span>';
+  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:14px;padding:6px 10px;min-width:44px;min-height:44px;cursor:pointer;line-height:1';
+  var h='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);margin:8px 12px;padding:14px">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  h+='<span style="font-size:15px;font-weight:700;color:var(--txt)">🎯 상대팀 베이스</span>';
   h+='<div style="display:flex;align-items:center;gap:2px">'
     +'<button style="'+adjBtnSt+'" onclick="adjInning(-1)">◀</button>'
-    +'<span style="font-size:12px;font-weight:700;color:var(--navy);min-width:38px;text-align:center">'+innLbl+'</span>'
+    +'<span style="font-size:14px;font-weight:700;color:var(--navy);min-width:44px;text-align:center">'+innLbl+'</span>'
     +'<button style="'+adjBtnSt+'" onclick="adjInning(1)">▶</button>'
     +'</div>';
-  h+='<div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;color:var(--txt2)">아웃</span>'+dots+'</div>';
+  h+='<div style="display:flex;align-items:center;gap:4px"><span style="font-size:12px;color:var(--txt2)">아웃</span>'+dots+'</div>';
   h+='</div>';
-  h+='<div style="display:flex;flex-direction:column;align-items:center;gap:10px">';
+  h+='<div style="display:flex;flex-direction:column;align-items:center;gap:12px">';
   h+='<div>'+pitSlot('b2','2루')+'</div>';
   h+='<div style="display:flex;gap:16px;width:100%;justify-content:space-between">'+pitSlot('b3','3루')+pitSlot('b1','1루')+'</div>';
   h+='</div>';
@@ -3297,11 +3675,11 @@ function rPitBaseDiagram(){
     h+='<div style="font-size:10px;color:var(--txt2);margin-top:6px;padding:0 2px">※ <strong>전임·</strong> 표시 = 이전 투수가 내보낸 주자 (득점 시 자/비자책 선택)</div>';
   }
   var endBtnStyle=outs>=3
-    ?'flex:1;background:#c2410c;color:#fff;border:none;border-radius:var(--r);padding:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit'
-    :'flex:1;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:var(--r);padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit';
-  h+='<div style="display:flex;gap:6px;margin-top:10px">'
+    ?'flex:1;background:#c2410c;color:#fff;border:none;border-radius:var(--r);padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px'
+    :'flex:1;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:var(--r);padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px';
+  h+='<div style="display:flex;gap:6px;margin-top:12px">'
     +'<button onclick="pitEndInning()" style="'+endBtnStyle+'">'+(outs>=3?'⚠️ ':'')+'이닝 종료</button>'
-    +'<button onclick="startPitTiebreaker()" style="flex:1;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:var(--r);padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">⚡ 승부치기</button>'
+    +'<button onclick="startPitTiebreaker()" style="flex:1;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:var(--r);padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">⚡ 승부치기</button>'
     +'</div>';
   return h+'</div>';
 }
@@ -3430,51 +3808,51 @@ function rBaseDiagram(){
   function baseSlot(key,label){
     var pno=S.bases[key];
     var p=pno!=null?ROSTER.find(function(x){return Number(x.no)===Number(pno);}):null;
-    var h='<div style="text-align:center;min-width:90px">';
-    h+='<div style="font-size:11px;color:var(--txt2);margin-bottom:3px;font-weight:700;letter-spacing:.5px">'+label+'</div>';
+    var h='<div style="text-align:center;min-width:100px">';
+    h+='<div style="font-size:13px;color:var(--txt2);margin-bottom:4px;font-weight:700;letter-spacing:.5px">'+label+'</div>';
     if(p){
-      h+='<div style="background:var(--navy);color:#fff;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:700">#'+p.no+' '+esc(p.name.length>4?p.name.slice(0,4)+'…':p.name)+'</div>';
-      h+='<div style="display:flex;gap:3px;margin-top:4px;justify-content:center">';
+      h+='<div style="background:var(--navy);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;font-weight:700">#'+p.no+' '+esc(p.name.length>4?p.name.slice(0,4)+'…':p.name)+'</div>';
+      h+='<div style="display:flex;gap:3px;margin-top:5px;justify-content:center">';
       if(key==='b3'){
-        h+='<button onclick="advanceBase(\'b3\')" style="background:#b91c1c;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">홈인🏠</button>';
+        h+='<button onclick="advanceBase(\'b3\')" style="background:#b91c1c;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">홈인🏠</button>';
       }else{
-        h+='<button onclick="advanceBase(\''+key+'\')" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">진루⬆</button>';
+        h+='<button onclick="advanceBase(\''+key+'\')" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">진루⬆</button>';
       }
-      h+='<button onclick="stealBase(\''+key+'\')" style="background:#047857;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">도루✓</button>';
-      h+='<button onclick="caughtBase(\''+key+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">도루✗</button>';
-      h+='<button onclick="removeFromBase(\''+key+'\')" style="background:#6b7280;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">아웃</button>';
+      h+='<button onclick="stealBase(\''+key+'\')" style="background:#047857;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">도루✓</button>';
+      h+='<button onclick="caughtBase(\''+key+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">도루✗</button>';
+      h+='<button onclick="removeFromBase(\''+key+'\')" style="background:#525252;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">아웃</button>';
       h+='</div>';
     }else{
-      h+='<div style="border:2px dashed var(--bdr);border-radius:6px;height:34px;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:var(--bdr)">—</span></div>';
+      h+='<div style="border:2px dashed var(--bdr);border-radius:6px;height:42px;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;color:var(--bdr)">—</span></div>';
     }
     return h+'</div>';
   }
   var outs=S.outs||0;
   var dots='';
-  for(var i=0;i<3;i++)dots+='<span style="width:11px;height:11px;border-radius:50%;background:'+(i<outs?'#dc2626':'var(--bdr)')+';display:inline-block;margin:0 2px"></span>';
-  var h='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);margin:8px 12px;padding:12px">';
+  for(var i=0;i<3;i++)dots+='<span style="width:13px;height:13px;border-radius:50%;background:'+(i<outs?'#dc2626':'var(--bdr)')+';display:inline-block;margin:0 2px"></span>';
+  var h='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);margin:8px 12px;padding:14px">';
   var innLbl=(S.inning||1)+'회'+(S.topBot==='bot'?'말':'초');
-  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:12px;padding:4px 8px;min-width:36px;min-height:36px;cursor:pointer;line-height:1';
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
-  h+='<span style="font-size:11px;font-weight:700;color:var(--txt)">⚾ 베이스 현황</span>';
+  var adjBtnSt='background:none;border:none;color:var(--txt2);font-size:14px;padding:6px 10px;min-width:44px;min-height:44px;cursor:pointer;line-height:1';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  h+='<span style="font-size:15px;font-weight:700;color:var(--txt)">⚾ 베이스 현황</span>';
   h+='<div style="display:flex;align-items:center;gap:2px">'
     +'<button style="'+adjBtnSt+'" onclick="adjInning(-1)">◀</button>'
-    +'<span style="font-size:12px;font-weight:700;color:var(--navy);min-width:38px;text-align:center">'+innLbl+'</span>'
+    +'<span style="font-size:14px;font-weight:700;color:var(--navy);min-width:44px;text-align:center">'+innLbl+'</span>'
     +'<button style="'+adjBtnSt+'" onclick="adjInning(1)">▶</button>'
     +'</div>';
-  h+='<div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;color:var(--txt2)">아웃</span>'+dots+'</div>';
+  h+='<div style="display:flex;align-items:center;gap:4px"><span style="font-size:12px;color:var(--txt2)">아웃</span>'+dots+'</div>';
   h+='</div>';
-  h+='<div style="display:flex;flex-direction:column;align-items:center;gap:10px">';
+  h+='<div style="display:flex;flex-direction:column;align-items:center;gap:12px">';
   h+='<div>'+baseSlot('b2','2루')+'</div>';
   h+='<div style="display:flex;gap:16px;width:100%;justify-content:space-between">'+baseSlot('b3','3루')+baseSlot('b1','1루')+'</div>';
   h+='</div>';
   var batOuts=S.outs||0;
   var batEndBtnStyle=batOuts>=3
-    ?'flex:1;background:#c2410c;color:#fff;border:none;border-radius:var(--r);padding:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit'
-    :'flex:1;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:var(--r);padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit';
-  h+='<div style="display:flex;gap:6px;margin-top:10px">'
+    ?'flex:1;background:#c2410c;color:#fff;border:none;border-radius:var(--r);padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px'
+    :'flex:1;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:var(--r);padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px';
+  h+='<div style="display:flex;gap:6px;margin-top:12px">'
     +'<button onclick="endInning()" style="'+batEndBtnStyle+'">'+(batOuts>=3?'⚠️ ':'')+'이닝 종료</button>'
-    +'<button onclick="showTiebreakerModal()" style="flex:1;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:var(--r);padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">⚡ 승부치기</button>'
+    +'<button onclick="showTiebreakerModal()" style="flex:1;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:var(--r);padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">⚡ 승부치기</button>'
     +'</div>';
   return h+'</div>';
 }
