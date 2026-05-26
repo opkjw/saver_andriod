@@ -1255,6 +1255,26 @@ function renderGHdr(){
   var typeBadge=S.game?(S.game.type==='P'
     ?'<span style="background:#f59e0b;color:#78350f;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600">연습</span>'
     :'<span style="background:#22c55e;color:#14532d;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600">정식</span>'):'';
+  if(tab&&S.tab===2){
+    var ag2=[...S.games].sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
+    var knownG2=new Set(ag2.map(function(g){return g.id;}));
+    [...new Set([...S.blog.map(function(e){return e.gid;}),...S.pit_bf.map(function(e){return e.gid;})])].filter(Boolean).forEach(function(gid){
+      if(!knownG2.has(gid)){var s=S.blog.find(function(e){return e.gid===gid;})||S.pit_bf.find(function(e){return e.gid===gid;});if(s){ag2.push({id:gid,no:'?',date:s.date||'',opp:s.opp||'?'});knownG2.add(gid);}}
+    });
+    ag2.sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
+    var now2=new Date();
+    var calMon2=S.calMonth||(now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0'));
+    var calY2=parseInt(calMon2.slice(0,4)),calM2=parseInt(calMon2.slice(5,7));
+    var prevMon2=calM2===1?(calY2-1)+'-12':calY2+'-'+String(calM2-1).padStart(2,'0');
+    var nextMon2=calM2===12?(calY2+1)+'-01':calY2+'-'+String(calM2+1).padStart(2,'0');
+    var firstDow2=new Date(calY2,calM2-1,1).getDay();
+    var daysInMon2=new Date(calY2,calM2,0).getDate();
+    var gameMap2={};
+    ag2.forEach(function(g){if(g.date&&g.date.slice(0,7)===calMon2){var dd=g.date.slice(8,10);if(!gameMap2[dd])gameMap2[dd]=g;}});
+    var noDateG2=ag2.filter(function(g){return !g.date||!g.date.match(/^\d{4}-\d{2}-\d{2}$/);});
+    document.getElementById('ghdr').innerHTML=rLogMasterPanel(ag2,S.logGameId,calMon2,calY2,calM2,prevMon2,nextMon2,firstDow2,daysInMon2,gameMap2,noDateG2);
+    return;
+  }
   var hdrHtml='';
   if(tab){
     var sc=S.game?gameScore(S.game.id):null;
@@ -1625,7 +1645,7 @@ function rLog(){
     }
   });
   const noDateGames=allGames.filter(g=>!g.date||!g.date.match(/^\d{4}-\d{2}-\d{2}$/));
-  if(isTablet())return rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,daysInMon,gameMap,noDateGames);
+  if(isTablet())return rLogIPad(selGid,allGames);
 
   // 달력 렌더
   const DOW=['일','월','화','수','목','금','토'];
@@ -1950,19 +1970,16 @@ function rLog(){
   return h;
 }
 
-function rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,daysInMon,gameMap,noDateGames){
-  var canEdit=PERM.canEdit;
+function rLogMasterPanel(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,daysInMon,gameMap,noDateGames){
   var DOW=['일','월','화','수','목','금','토'];
-  var h='<div class="cal-wrap">';
+  var h='<div class="cal-wrap" style="flex-shrink:0">';
   h+='<div class="cal-nav">'
     +'<button onclick="S.calMonth=&apos;'+prevMon+'&apos;;S.logGameId=null;renderCt()">&#8249;</button>'
     +'<span>'+calY+'년 '+calM+'월</span>'
     +'<button onclick="S.calMonth=&apos;'+nextMon+'&apos;;S.logGameId=null;renderCt()">&#8250;</button>'
     +'</div>';
   h+='<div class="cal-grid">';
-  DOW.forEach(function(d,i){
-    h+='<div class="cal-dow" style="color:'+(i===0?'#ef4444':i===6?'#3b82f6':'var(--txt2)')+'">'+d+'</div>';
-  });
+  DOW.forEach(function(d,i){h+='<div class="cal-dow" style="color:'+(i===0?'#ef4444':i===6?'#3b82f6':'var(--txt2)')+'">'+d+'</div>';});
   for(var ei=0;ei<firstDow;ei++)h+='<div class="cal-cell"></div>';
   for(var day=1;day<=daysInMon;day++){
     var ds=String(day).padStart(2,'0');
@@ -1979,16 +1996,12 @@ function rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,days
     h+='</div>';
   }
   h+='</div>';
-  h+='<div class="cal-legend">'
-    +'<span><span class="cal-dot" style="background:var(--navy);display:inline-block"></span>정식경기</span>'
-    +'<span><span class="cal-dot" style="background:#16a34a;display:inline-block"></span>연습경기</span>'
-    +'</div>';
+  h+='<div class="cal-legend"><span><span class="cal-dot" style="background:var(--navy);display:inline-block"></span>정식경기</span><span><span class="cal-dot" style="background:#16a34a;display:inline-block"></span>연습경기</span></div>';
   h+='</div>';
-
   var monGames=allGames.filter(function(gg){return gg.date&&gg.date.slice(0,7)===calMon;});
   var listH='';
   if(!monGames.length){
-    listH+='<div style="padding:20px 14px;text-align:center;font-size:12px;color:var(--txt2)">이 달 경기 없음</div>';
+    listH='<div style="padding:20px 14px;text-align:center;font-size:12px;color:var(--txt2)">이 달 경기 없음</div>';
   } else {
     monGames.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date));}).forEach(function(gg){
       var isSel2=gg.id===selGid;
@@ -1997,16 +2010,13 @@ function rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,days
       var dp=gg.date?gg.date.split('-'):[];
       var dsp=dp.length===3?(parseInt(dp[1])+'월 '+parseInt(dp[2])+'일'):'?';
       var dow2=dp.length===3?['일','월','화','수','목','금','토'][new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2])).getDay()]:'';
-      listH+='<div onclick="var _gid=&apos;'+gg.id+'&apos;;S.logGameId=(_gid===S.logGameId?null:_gid);S.logExpanded={};S.pitExpanded={};S.logSection=&apos;bat&apos;;renderCt()" style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;background:'+(isSel2?'#EBF0FB':'transparent')+'">';
-      listH+='<div style="width:5px;height:5px;border-radius:50%;background:'+(isOff2?'var(--navy)':'#16a34a')+';flex-shrink:0"></div>';
+      listH+='<div onclick="var _gid=&apos;'+gg.id+'&apos;;S.logGameId=(_gid===S.logGameId?null:_gid);S.logExpanded={};S.pitExpanded={};S.logSection=&apos;bat&apos;;renderCt()" style="display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;background:'+(isSel2?'#EBF0FB':'transparent')+'">';
+      listH+='<div style="width:6px;height:6px;border-radius:50%;background:'+(isOff2?'var(--navy)':'#16a34a')+';flex-shrink:0"></div>';
       listH+='<div style="flex:1;min-width:0">';
-      listH+='<div style="font-size:12px;font-weight:'+(isSel2?'700':'600')+';color:'+(isSel2?'var(--navy)':'var(--txt)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">vs '+esc(gg.opp)+'</div>';
+      listH+='<div style="font-size:13px;font-weight:'+(isSel2?'700':'600')+';color:'+(isSel2?'var(--navy)':'var(--txt)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">vs '+esc(gg.opp)+'</div>';
       listH+='<div style="font-size:11px;color:var(--txt2)">'+dsp+' ('+dow2+')</div>';
       listH+='</div>';
-      if(sc2.has){
-        var selWin2=sc2.our>sc2.opp,selLose2=sc2.our<sc2.opp;
-        listH+='<div style="font-size:12px;font-weight:700;color:'+(selWin2?'#16a34a':selLose2?'#dc2626':'var(--txt2)')+'">'+sc2.our+':'+sc2.opp+'</div>';
-      }
+      if(sc2.has){var w2=sc2.our>sc2.opp,l2=sc2.our<sc2.opp;listH+='<div style="font-size:13px;font-weight:700;color:'+(w2?'#16a34a':l2?'#dc2626':'var(--txt2)')+'">'+sc2.our+':'+sc2.opp+'</div>';}
       listH+='</div>';
     });
   }
@@ -2014,20 +2024,21 @@ function rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,days
     listH+='<div style="margin:8px;background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r);padding:10px 12px">';
     listH+='<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px">⚠ 날짜 없는 경기 ('+noDateGames.length+'개)</div>';
     noDateGames.forEach(function(gg){
-      listH+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0">'
-        +'<span style="font-size:12px;color:var(--txt);flex:1">vs '+esc(gg.opp||'?')+'</span>'
-        +(PERM.canManageGame?'<button onclick="showEditGameModal(&apos;'+gg.id+'&apos;)" style="font-size:11px;padding:3px 8px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);cursor:pointer;font-family:inherit">수정</button>':'')
-        +'</div>';
+      listH+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0"><span style="font-size:12px;color:var(--txt);flex:1">vs '+esc(gg.opp||'?')+'</span>'+(PERM.canManageGame?'<button onclick="showEditGameModal(&apos;'+gg.id+'&apos;)" style="font-size:11px;padding:3px 8px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);cursor:pointer;font-family:inherit">수정</button>':'')+'</div>';
     });
     listH+='</div>';
   }
-
+  return h+'<div style="overflow-y:auto;flex:1;min-height:0">'+listH+'</div>';
+}
+function rLogIPad(selGid,allGames){
+  var canEdit=PERM.canEdit;
+  var myHighlight2=PERM.parent?Number(activeNo()):null;
   var rightH='';
   if(!selGid){
-    rightH='<div style="padding:48px 24px;text-align:center;color:var(--txt2)">'
-      +'<div style="font-size:32px;margin-bottom:12px">📋</div>'
-      +'<div style="font-size:14px;font-weight:600">경기를 선택하세요</div>'
-      +'<div style="font-size:12px;margin-top:6px">달력 또는 왼쪽 목록에서 경기 날짜를 선택하면<br>상세 기록이 여기에 표시됩니다.</div>'
+    rightH='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:48px 24px;text-align:center;color:var(--txt2)">'
+      +'<div style="font-size:40px;margin-bottom:16px">📋</div>'
+      +'<div style="font-size:16px;font-weight:600;margin-bottom:8px">경기를 선택하세요</div>'
+      +'<div style="font-size:13px;line-height:1.6">왼쪽 달력 또는 경기 목록에서<br>경기를 선택하면 상세 기록이 표시됩니다.</div>'
       +'</div>';
   } else {
     var selGame=allGames.find(function(gg){return gg.id===selGid;});
@@ -2208,11 +2219,7 @@ function rLogIPad(allGames,selGid,calMon,calY,calM,prevMon,nextMon,firstDow,days
       }
     }
   }
-  return h
-    +'<div class="ipad-md-wrap">'
-    +'<div class="ipad-md-left">'+listH+'</div>'
-    +'<div class="ipad-md-right">'+rightH+'</div>'
-    +'</div>';
+  return rightH;
 }
 
 // 월간 전체 기록 뷰
