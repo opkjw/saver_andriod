@@ -256,7 +256,7 @@ function isTablet(){
   return typeof Capacitor!=='undefined'&&typeof Capacitor.getPlatform==='function'&&Capacitor.getPlatform()==='ios'&&window.innerWidth>=768;
 }
 function isIPadInput(){return isTablet()&&(S.tab===0||S.tab===1);}
-function applyIPadClass(){var t=isTablet();document.body.classList.toggle('ipad-2col',t&&(S.tab===0||S.tab===1||S.tab===2||S.tab===3));document.body.classList.toggle('ipad-mode',t);}
+function applyIPadClass(){var t=isTablet();document.body.classList.toggle('ipad-2col',t);document.body.classList.toggle('ipad-mode',t);}
 window.addEventListener('resize',function(){clearTimeout(window._rszT);window._rszT=setTimeout(function(){r();},200);});
 // ── 선수 명단 ─────────────────────────────────────────────
 let ROSTER=[
@@ -1251,7 +1251,7 @@ function renderGHdr(){
   const isFirstVisit=!S.setupDone;
   const isUser=PERM.parent;
   const refreshIcon=S.loading?'⏳':'🔄';
-  const tab=isIPadInput();
+  const tab=isTablet();
   var typeBadge=S.game?(S.game.type==='P'
     ?'<span style="background:#f59e0b;color:#78350f;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600">연습</span>'
     :'<span style="background:#22c55e;color:#14532d;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600">정식</span>'):'';
@@ -1337,7 +1337,7 @@ function renderGHdr(){
         +'</div></div>');
   }
   // 태블릿: ③ 베이스 다이어그램 영역 (flex:1 — 남은 공간 채움, 내용 많으면 자체 스크롤)
-  var sideHtml=tab&&S.game
+  var sideHtml=tab&&S.game&&(S.tab===0||S.tab===1)
     ?'<div style="flex:1;overflow-y:auto;min-height:0">'+((S.tab===1&&!PERM.parent)?rPitBaseDiagram():rBaseDiagram())+rMiniLog()+'</div>'
     :'';
   document.getElementById('ghdr').innerHTML=hdrHtml+sideHtml;
@@ -1351,7 +1351,7 @@ function renderTabs(){
   }).join('');
 }
 function renderCt(){
-  if(isIPadInput())renderGHdr();
+  if(isTablet())renderGHdr();
   const el=document.getElementById('ct');
   var sibHtml='';
   if(PERM.parent&&(S.tab===2||S.tab===3)){
