@@ -2455,7 +2455,7 @@ function rStats(){
   });
 
 
-  if(isTablet())return rStatsIPadRight(st,bs,ps,saberFocusNo,pitSaberFocusNo);
+  if(isTablet()){var _focused=st===0?(saberFocusNo!==null):(pitSaberFocusNo!==null);if(_focused)return rStatsIPadRight(st,bs,ps,saberFocusNo,pitSaberFocusNo);}
 
   if(st===0){
     // ── 타자 ────────────────────────────────────────────────
