@@ -3626,9 +3626,9 @@ function applyPitBaseAdv(oc,pitBfId){
 function rPitBaseDiagram(){
   if(!S.game)return'';
   if(!S.pitBases)S.pitBases={b1:null,b2:null,b3:null};
-  function pitSlot(key,label){
+  function pitSlot(key,label,compact){
     var runner=S.pitBases[key];
-    var h='<div style="text-align:center;min-width:100px">';
+    var h='<div style="text-align:center;'+(compact?'flex:1;min-width:0':'min-width:100px')+'">';
     h+='<div style="font-size:13px;color:var(--txt2);margin-bottom:4px;font-weight:700;letter-spacing:.5px">'+label+'</div>';
     if(runner!=null){
       var rc=runner.earned?'#dc2626':'#6b7280';
@@ -3636,14 +3636,17 @@ function rPitBaseDiagram(){
       var inherited=runner.pno!=null&&runner.pno!==S.curPit;
       var runnerLbl=inherited?('전임·'+(runner.earned?'자책':'비자책')):(runner.earned?'자책':'비자책');
       h+='<div style="background:'+rb+';color:'+rc+';border:1.5px solid '+rc+';border-radius:6px;padding:7px 6px;font-size:13px;font-weight:700">'+runnerLbl+'</div>';
-      h+='<div style="display:flex;gap:3px;margin-top:5px;justify-content:center">';
+      var btnSt=compact
+        ?'border:none;border-radius:4px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px;flex:1;padding:10px 4px;font-size:12px;color:#fff;'
+        :'border:none;border-radius:4px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px;padding:10px 12px;font-size:13px;color:#fff;';
+      h+='<div style="display:flex;gap:3px;margin-top:5px;">';
       if(key!=='b3'){
-        h+='<button onclick="pitRunnerScore(\''+key+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">득점</button>';
-        h+='<button onclick="pitRunnerSteal(\''+key+'\')" style="background:#2563eb;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">진루</button>';
+        h+='<button onclick="pitRunnerScore(\''+key+'\')" style="background:#dc2626;'+btnSt+'">득점</button>';
+        h+='<button onclick="pitRunnerSteal(\''+key+'\')" style="background:#2563eb;'+btnSt+'">진루</button>';
       }else{
-        h+='<button onclick="pitRunnerSteal(\'b3\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">홈인</button>';
+        h+='<button onclick="pitRunnerSteal(\'b3\')" style="background:#dc2626;'+btnSt+'">홈인</button>';
       }
-      h+='<button onclick="pitRunnerOut(\''+key+'\')" style="background:#525252;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">아웃</button>';
+      h+='<button onclick="pitRunnerOut(\''+key+'\')" style="background:#525252;'+btnSt+'">아웃</button>';
       h+='</div>';
     }else{
       h+='<div style="border:2px dashed var(--bdr);border-radius:6px;height:42px;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;color:var(--bdr)">—</span></div>';
@@ -3667,7 +3670,7 @@ function rPitBaseDiagram(){
   h+='</div>';
   h+='<div style="display:flex;flex-direction:column;align-items:center;gap:12px">';
   h+='<div>'+pitSlot('b2','2루')+'</div>';
-  h+='<div style="display:flex;gap:16px;width:100%;justify-content:space-between">'+pitSlot('b3','3루')+pitSlot('b1','1루')+'</div>';
+  h+='<div style="display:flex;gap:8px;width:100%">'+pitSlot('b3','3루',true)+pitSlot('b1','1루',true)+'</div>';
   h+='</div>';
   var hasInherited=false;
   ['b1','b2','b3'].forEach(function(k){if(S.pitBases[k]&&S.pitBases[k].pno!=null&&S.pitBases[k].pno!==S.curPit)hasInherited=true;});
@@ -3805,22 +3808,25 @@ function addPitRun(earned){
 function delPitRun(id){S.pit_runs=S.pit_runs.filter(e=>e.id!==id);save();renderCt();if(window.SupabaseClient)SB.deletePitRun(id).catch(function(){});}
 function rBaseDiagram(){
   if(!S.game)return'';
-  function baseSlot(key,label){
+  function baseSlot(key,label,compact){
     var pno=S.bases[key];
     var p=pno!=null?ROSTER.find(function(x){return Number(x.no)===Number(pno);}):null;
-    var h='<div style="text-align:center;min-width:100px">';
+    var h='<div style="text-align:center;'+(compact?'flex:1;min-width:0':'min-width:100px')+'">';
     h+='<div style="font-size:13px;color:var(--txt2);margin-bottom:4px;font-weight:700;letter-spacing:.5px">'+label+'</div>';
     if(p){
       h+='<div style="background:var(--navy);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;font-weight:700">#'+p.no+' '+esc(p.name.length>4?p.name.slice(0,4)+'…':p.name)+'</div>';
-      h+='<div style="display:flex;gap:3px;margin-top:5px;justify-content:center">';
+      var btnSt=compact
+        ?'border:none;border-radius:4px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px;flex:1;padding:10px 4px;font-size:12px;color:#fff;'
+        :'border:none;border-radius:4px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px;padding:10px 12px;font-size:13px;color:#fff;';
+      h+='<div style="display:flex;gap:3px;margin-top:5px;">';
       if(key==='b3'){
-        h+='<button onclick="advanceBase(\'b3\')" style="background:#b91c1c;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">홈인🏠</button>';
+        h+='<button onclick="advanceBase(\'b3\')" style="background:#b91c1c;'+btnSt+'">홈인🏠</button>';
       }else{
-        h+='<button onclick="advanceBase(\''+key+'\')" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">진루⬆</button>';
+        h+='<button onclick="advanceBase(\''+key+'\')" style="background:#0369a1;'+btnSt+'">진루⬆</button>';
       }
-      h+='<button onclick="stealBase(\''+key+'\')" style="background:#047857;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">도루✓</button>';
-      h+='<button onclick="caughtBase(\''+key+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">도루✗</button>';
-      h+='<button onclick="removeFromBase(\''+key+'\')" style="background:#525252;color:#fff;border:none;border-radius:4px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px">아웃</button>';
+      h+='<button onclick="stealBase(\''+key+'\')" style="background:#047857;'+btnSt+'">도루✓</button>';
+      h+='<button onclick="caughtBase(\''+key+'\')" style="background:#dc2626;'+btnSt+'">도루✗</button>';
+      h+='<button onclick="removeFromBase(\''+key+'\')" style="background:#525252;'+btnSt+'">아웃</button>';
       h+='</div>';
     }else{
       h+='<div style="border:2px dashed var(--bdr);border-radius:6px;height:42px;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;color:var(--bdr)">—</span></div>';
@@ -3844,7 +3850,7 @@ function rBaseDiagram(){
   h+='</div>';
   h+='<div style="display:flex;flex-direction:column;align-items:center;gap:12px">';
   h+='<div>'+baseSlot('b2','2루')+'</div>';
-  h+='<div style="display:flex;gap:16px;width:100%;justify-content:space-between">'+baseSlot('b3','3루')+baseSlot('b1','1루')+'</div>';
+  h+='<div style="display:flex;gap:8px;width:100%">'+baseSlot('b3','3루',true)+baseSlot('b1','1루',true)+'</div>';
   h+='</div>';
   var batOuts=S.outs||0;
   var batEndBtnStyle=batOuts>=3
