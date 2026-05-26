@@ -2455,6 +2455,8 @@ function rStats(){
   });
 
 
+  if(isTablet())return rStatsIPadRight(st,bs,ps,saberFocusNo,pitSaberFocusNo);
+
   if(st===0){
     // ── 타자 ────────────────────────────────────────────────
     if(bs.length&&batRows.length){
@@ -2538,6 +2540,68 @@ function rStats(){
     } else {
       h+='<div class="empty" style="padding:32px">'+((!isAdmin&&myNo&&!myPitSt)?rNoRecMsg(myName,'투수'):'투수 기록이 없습니다.')+'</div>';
     }
+  }
+  return h;
+}
+function rStatsIPadRight(st,bs,ps,saberFocusNo,pitSaberFocusNo){
+  function statTile(label,value,color){
+    return '<div style="text-align:center;background:var(--bg2);border-radius:var(--r);padding:14px 6px">'
+      +'<div style="font-size:11px;color:var(--txt2);font-weight:600;margin-bottom:6px">'+label+'</div>'
+      +'<div style="font-size:26px;font-weight:800;line-height:1;color:'+(color||'var(--txt)')+'">'+value+'</div>'
+      +'</div>';
+  }
+  function playerHeader(no,name,pos,accentColor){
+    return '<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--bdr);background:var(--card)">'
+      +'<div style="width:52px;height:52px;border-radius:50%;background:'+accentColor+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0">#'+no+'</div>'
+      +'<div><div style="font-size:22px;font-weight:800;color:var(--txt)">'+esc(name)+'</div>'
+      +'<div style="font-size:12px;color:var(--txt2);margin-top:2px">'+pos+'</div></div>'
+      +'</div>';
+  }
+  function emptyState(icon,label){
+    return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:48px 24px;text-align:center;color:var(--txt2)">'
+      +'<div style="font-size:40px;margin-bottom:16px">'+icon+'</div>'
+      +'<div style="font-size:16px;font-weight:600;margin-bottom:8px">'+label+'</div>'
+      +'<div style="font-size:13px;line-height:1.6">왼쪽 목록에서 선수를 선택하면<br>상세 기록이 표시됩니다.</div>'
+      +'</div>';
+  }
+  var h='';
+  if(st===0){
+    var focusNo=saberFocusNo;
+    var s=focusNo!==null?bs.find(function(x){return Number(x.no)===focusNo;}):null;
+    if(!s)return emptyState('⚾','선수를 선택하세요');
+    var p=ROSTER.find(function(x){return x.no===focusNo;})||{name:'#'+focusNo,pos:''};
+    h+=playerHeader(focusNo,p.name,p.pos||'','var(--navy)');
+    h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:16px 20px">'
+      +statTile('PA',s.pa,'')
+      +statTile('AB',s.ab,'')
+      +statTile('H',s.h,'')
+      +statTile('2B',s.d2,'')
+      +statTile('3B',s.d3,'')
+      +statTile('HR',s.hr,'var(--red)')
+      +statTile('RBI',s.rbi,'')
+      +statTile('R',s.run,'')
+      +statTile('BB',s.bb,'')
+      +statTile('K',s.so,'#1d4ed8')
+      +'</div>';
+    h+='<div id="spray-section">'+rSprayChart(focusNo)+'</div>';
+    h+=rBatTile(s,focusNo);
+  } else {
+    var pitFocusNo=pitSaberFocusNo;
+    var ps2=pitFocusNo!==null?ps.find(function(x){return Number(x.no)===pitFocusNo;}):null;
+    if(!ps2)return emptyState('🎯','선수를 선택하세요');
+    var pp=ROSTER.find(function(x){return x.no===pitFocusNo;})||{name:'#'+pitFocusNo,pos:'P'};
+    h+=playerHeader(pitFocusNo,pp.name,pp.pos||'P','var(--red)');
+    h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 20px">'
+      +statTile('G',ps2.g,'')
+      +statTile('IP',ps2.ipd,'')
+      +statTile('H',ps2.h,'')
+      +statTile('BB',ps2.bb,'')
+      +statTile('K',ps2.k,'#1d4ed8')
+      +statTile('HR',ps2.hr,'var(--red)')
+      +statTile('ER',ps2.er,'var(--red)')
+      +statTile('R',ps2.r,'')
+      +'</div>';
+    h+='<div id="pit-saber-section">'+rPitTile(ps2,pitFocusNo)+'</div>';
   }
   return h;
 }
