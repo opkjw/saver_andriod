@@ -1255,26 +1255,6 @@ function renderGHdr(){
   var typeBadge=S.game?(S.game.type==='P'
     ?'<span style="background:#f59e0b;color:#78350f;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600">연습</span>'
     :'<span style="background:#22c55e;color:#14532d;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600">정식</span>'):'';
-  if(tab&&S.tab===2){
-    var ag2=[...S.games].sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
-    var knownG2=new Set(ag2.map(function(g){return g.id;}));
-    [...new Set([...S.blog.map(function(e){return e.gid;}),...S.pit_bf.map(function(e){return e.gid;})])].filter(Boolean).forEach(function(gid){
-      if(!knownG2.has(gid)){var s=S.blog.find(function(e){return e.gid===gid;})||S.pit_bf.find(function(e){return e.gid===gid;});if(s){ag2.push({id:gid,no:'?',date:s.date||'',opp:s.opp||'?'});knownG2.add(gid);}}
-    });
-    ag2.sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
-    var now2=new Date();
-    var calMon2=S.calMonth||(now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0'));
-    var calY2=parseInt(calMon2.slice(0,4)),calM2=parseInt(calMon2.slice(5,7));
-    var prevMon2=calM2===1?(calY2-1)+'-12':calY2+'-'+String(calM2-1).padStart(2,'0');
-    var nextMon2=calM2===12?(calY2+1)+'-01':calY2+'-'+String(calM2+1).padStart(2,'0');
-    var firstDow2=new Date(calY2,calM2-1,1).getDay();
-    var daysInMon2=new Date(calY2,calM2,0).getDate();
-    var gameMap2={};
-    ag2.forEach(function(g){if(g.date&&g.date.slice(0,7)===calMon2){var dd=g.date.slice(8,10);if(!gameMap2[dd])gameMap2[dd]=g;}});
-    var noDateG2=ag2.filter(function(g){return !g.date||!g.date.match(/^\d{4}-\d{2}-\d{2}$/);});
-    document.getElementById('ghdr').innerHTML=rLogMasterPanel(ag2,S.logGameId,calMon2,calY2,calM2,prevMon2,nextMon2,firstDow2,daysInMon2,gameMap2,noDateG2);
-    return;
-  }
   var hdrHtml='';
   if(tab){
     var sc=S.game?gameScore(S.game.id):null;
@@ -1356,10 +1336,30 @@ function renderGHdr(){
         +(isFirstVisit?'<button class="gh-btn" style="background:#f59e0b;color:#78350f;font-weight:700" onclick="setTab(4)">⚙ 초기 설정</button>':'<button class="gh-btn" onclick="showGameModal()">+ 경기 시작</button>')
         +'</div></div>');
   }
-  // 태블릿: ③ 베이스 다이어그램 영역 (flex:1 — 남은 공간 채움, 내용 많으면 자체 스크롤)
-  var sideHtml=tab&&S.game&&(S.tab===0||S.tab===1)
-    ?'<div style="flex:1;overflow-y:auto;min-height:0">'+((S.tab===1&&!PERM.parent)?rPitBaseDiagram():rBaseDiagram())+rMiniLog()+'</div>'
-    :'';
+  // 태블릿: ③ 하단 영역 (flex:1) — 탭별 다른 내용
+  var sideHtml='';
+  if(tab){
+    if((S.tab===0||S.tab===1)&&S.game){
+      sideHtml='<div style="flex:1;overflow-y:auto;min-height:0">'+((S.tab===1&&!PERM.parent)?rPitBaseDiagram():rBaseDiagram())+rMiniLog()+'</div>';
+    } else if(S.tab===2){
+      var ag2=[...S.games].sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
+      var knownG2=new Set(ag2.map(function(g){return g.id;}));
+      [...new Set([...S.blog.map(function(e){return e.gid;}),...S.pit_bf.map(function(e){return e.gid;})])].filter(Boolean).forEach(function(gid){
+        if(!knownG2.has(gid)){var s2=S.blog.find(function(e){return e.gid===gid;})||S.pit_bf.find(function(e){return e.gid===gid;});if(s2){ag2.push({id:gid,no:'?',date:s2.date||'',opp:s2.opp||'?'});knownG2.add(gid);}}
+      });
+      ag2.sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
+      var now2=new Date();
+      var calMon2=S.calMonth||(now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0'));
+      var calY2=parseInt(calMon2.slice(0,4)),calM2=parseInt(calMon2.slice(5,7));
+      var prevMon2=calM2===1?(calY2-1)+'-12':calY2+'-'+String(calM2-1).padStart(2,'0');
+      var nextMon2=calM2===12?(calY2+1)+'-01':calY2+'-'+String(calM2+1).padStart(2,'0');
+      var firstDow2=new Date(calY2,calM2-1,1).getDay(),daysInMon2=new Date(calY2,calM2,0).getDate();
+      var gameMap2={};
+      ag2.forEach(function(g){if(g.date&&g.date.slice(0,7)===calMon2){var dd=g.date.slice(8,10);if(!gameMap2[dd])gameMap2[dd]=g;}});
+      var noDateG2=ag2.filter(function(g){return !g.date||!g.date.match(/^\d{4}-\d{2}-\d{2}$/);});
+      sideHtml=rLogMasterPanel(ag2,S.logGameId,calMon2,calY2,calM2,prevMon2,nextMon2,firstDow2,daysInMon2,gameMap2,noDateG2);
+    }
+  }
   document.getElementById('ghdr').innerHTML=hdrHtml+sideHtml;
 }
 function renderTabs(){
