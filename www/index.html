@@ -1358,6 +1358,8 @@ function renderGHdr(){
       ag2.forEach(function(g){if(g.date&&g.date.slice(0,7)===calMon2){var dd=g.date.slice(8,10);if(!gameMap2[dd])gameMap2[dd]=g;}});
       var noDateG2=ag2.filter(function(g){return !g.date||!g.date.match(/^\d{4}-\d{2}-\d{2}$/);});
       sideHtml=rLogMasterPanel(ag2,S.logGameId,calMon2,calY2,calM2,prevMon2,nextMon2,firstDow2,daysInMon2,gameMap2,noDateG2);
+    } else if(S.tab===3){
+      sideHtml=rStatsMasterPanel();
     }
   }
   document.getElementById('ghdr').innerHTML=hdrHtml+sideHtml;
@@ -2418,15 +2420,17 @@ function rStats(){
   const tbtn=(isAdmin&&saberFocusNo!==null)?'<button onclick="S.batShowAll='+(!showAll)+';renderCt()" style="margin-left:auto;background:none;border:1px solid var(--bdr);border-radius:12px;padding:2px 10px;font-size:11px;color:var(--txt2);cursor:pointer;font-family:inherit">'+(showAll?'선택만 ▲':'전체 선수 ▼')+'</button>':'';
 
   const st=S.statTab||0;
-  let h=loadingBanner+'<div style="display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bdr);background:var(--card)">'
-    +'<button onclick="S.statsFilter=\'all\';renderCt()" style="'+(sf==='all'?fbOn:fbOff)+'">전체 '+totalG+'</button>'
-    +'<button onclick="S.statsFilter=\'O\';renderCt()" style="'+(sf==='O'?fbOn:fbOff)+'">정식 '+offG+'</button>'
-    +'<button onclick="S.statsFilter=\'P\';renderCt()" style="'+(sf==='P'?fbOn:fbOff)+'">연습 '+praG+'</button>'
-    +'</div>';
-  h+='<div class="stabs">'
+  // iPad: 필터/stabs는 좌측 컬럼(rStatsMasterPanel)에 있으므로 우측에는 제외
+  let h=isTablet()?loadingBanner
+    :loadingBanner+'<div style="display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bdr);background:var(--card)">'
+      +'<button onclick="S.statsFilter=\'all\';renderCt()" style="'+(sf==='all'?fbOn:fbOff)+'">전체 '+totalG+'</button>'
+      +'<button onclick="S.statsFilter=\'O\';renderCt()" style="'+(sf==='O'?fbOn:fbOff)+'">정식 '+offG+'</button>'
+      +'<button onclick="S.statsFilter=\'P\';renderCt()" style="'+(sf==='P'?fbOn:fbOff)+'">연습 '+praG+'</button>'
+      +'</div>';
+  if(!isTablet()){h+='<div class="stabs">'
     +'<button class="stab bat'+(st===0?' on':'')+'" onclick="S.statTab=0;renderCt()">⚾ 타자</button>'
     +'<button class="stab pit'+(st===1?' on':'')+'" onclick="S.statTab=1;renderCt()">🎯 투수</button>'
-    +'</div>';
+    +'</div>';}
 
   if(!bs.length&&!ps.length)return h+'<div class="empty" style="padding:32px">해당 경기 기록이 없습니다.</div>';
 
@@ -2535,6 +2539,68 @@ function rStats(){
       h+='<div class="empty" style="padding:32px">'+((!isAdmin&&myNo&&!myPitSt)?rNoRecMsg(myName,'투수'):'투수 기록이 없습니다.')+'</div>';
     }
   }
+  return h;
+}
+function rStatsMasterPanel(){
+  var sf=S.statsFilter||'all';
+  var filtGids=null;
+  if(sf!=='all'){filtGids=new Set(S.games.filter(function(g){return(g.type||'O')===sf;}).map(function(g){return g.id;}));}
+  var bs=batAgg(filtGids),ps=pitAgg(filtGids);
+  var st=S.statTab||0;
+  var isAdmin=PERM.canViewAllStats;
+  var myNo=PERM.parent?(activeNo()!=null?Number(activeNo()):null):null;
+  var saberFocusNo=isAdmin?(S.sprayPlayer!==null?S.sprayPlayer:null):myNo;
+  var pitSaberFocusNo=isAdmin?(S.pitFocus!==null?S.pitFocus:null):myNo;
+  var totalG=S.games.length;
+  var offG=S.games.filter(function(g){return(g.type||'O')==='O';}).length;
+  var praG=S.games.filter(function(g){return g.type==='P';}).length;
+  var fbBase='padding:5px 10px;border-radius:16px;border:1px solid var(--bdr);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;margin:2px;';
+  var fbOn=fbBase+'background:var(--navy);color:#fff;border-color:var(--navy)';
+  var fbOff=fbBase+'background:var(--card);color:var(--txt2)';
+  var h='<div style="flex-shrink:0;padding:8px 10px;border-bottom:1px solid var(--bdr)">';
+  h+='<button onclick="S.statsFilter=&apos;all&apos;;renderCt()" style="'+( sf==='all'?fbOn:fbOff)+'">전체 '+totalG+'</button>';
+  h+='<button onclick="S.statsFilter=&apos;O&apos;;renderCt()" style="'+(sf==='O'?fbOn:fbOff)+'">정식 '+offG+'</button>';
+  h+='<button onclick="S.statsFilter=&apos;P&apos;;renderCt()" style="'+(sf==='P'?fbOn:fbOff)+'">연습 '+praG+'</button>';
+  h+='</div>';
+  var tabBase='flex:1;padding:10px 0;border:none;border-bottom:3px solid transparent;background:transparent;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--txt2);';
+  h+='<div style="flex-shrink:0;display:flex;border-bottom:1px solid var(--bdr)">';
+  h+='<button onclick="S.statTab=0;S.sprayPlayer=null;renderCt()" style="'+tabBase+(st===0?'border-bottom-color:var(--navy);color:var(--navy)':'')+'">⚾ 타자</button>';
+  h+='<button onclick="S.statTab=1;S.pitFocus=null;renderCt()" style="'+tabBase+(st===1?'border-bottom-color:var(--red);color:var(--red)':'')+'">🎯 투수</button>';
+  h+='</div>';
+  h+='<div style="overflow-y:auto;flex:1;min-height:0">';
+  if(st===0){
+    var batRows=(isAdmin?bs:bs.filter(function(s){return Number(s.no)===myNo;})).slice().sort(function(a,b){return b.avg-a.avg;});
+    if(!batRows.length){
+      h+='<div style="padding:20px;text-align:center;font-size:12px;color:var(--txt2)">타자 기록 없음</div>';
+    } else {
+      batRows.forEach(function(s){
+        var sel=Number(s.no)===saberFocusNo;
+        h+='<div onclick="setSprayPlayer('+Number(s.no)+')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;background:'+(sel?'#EBF0FB':'transparent')+'">';
+        h+='<div style="width:30px;height:30px;border-radius:50%;background:'+(sel?'var(--navy)':'var(--bg2)')+';color:'+(sel?'#fff':'var(--txt2)')+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">#'+s.no+'</div>';
+        h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:'+(sel?'700':'600')+';color:'+(sel?'var(--navy)':'var(--txt)')+'">'+esc(s.name)+'</div>';
+        h+='<div style="font-size:11px;color:var(--txt2)">PA:'+s.pa+'&nbsp;&nbsp;'+s.avg.toFixed(3).replace(/^0/,'')+'&nbsp;&nbsp;OPS:'+(s.ops<0.001?'-':s.ops.toFixed(3))+'</div></div>';
+        if(sel)h+='<span style="color:var(--navy);font-size:12px">📍</span>';
+        h+='</div>';
+      });
+    }
+  } else {
+    var pitRows=(isAdmin?ps:ps.filter(function(s){return Number(s.no)===myNo;})).slice().sort(function(a,b){var ae=(!isFinite(a.era)||isNaN(a.era))?999:a.era;var be=(!isFinite(b.era)||isNaN(b.era))?999:b.era;return ae-be;});
+    if(!pitRows.length){
+      h+='<div style="padding:20px;text-align:center;font-size:12px;color:var(--txt2)">투수 기록 없음</div>';
+    } else {
+      pitRows.forEach(function(s){
+        var sel=Number(s.no)===pitSaberFocusNo;
+        var eraStr=(!isFinite(s.era)||isNaN(s.era))?'∞':s.era.toFixed(2);
+        h+='<div onclick="setPitFocus('+Number(s.no)+')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;background:'+(sel?'#FEF2F2':'transparent')+'">';
+        h+='<div style="width:30px;height:30px;border-radius:50%;background:'+(sel?'var(--red)':'var(--bg2)')+';color:'+(sel?'#fff':'var(--txt2)')+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">#'+s.no+'</div>';
+        h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:'+(sel?'700':'600')+';color:'+(sel?'var(--red)':'var(--txt)')+'">'+esc(s.name)+'</div>';
+        h+='<div style="font-size:11px;color:var(--txt2)">'+s.ipd+'이닝&nbsp;&nbsp;ERA:'+eraStr+'&nbsp;&nbsp;K:'+s.k+'</div></div>';
+        if(sel)h+='<span style="color:var(--red);font-size:12px">📍</span>';
+        h+='</div>';
+      });
+    }
+  }
+  h+='</div>';
   return h;
 }
 function rStatsIPad(topH,st,bs,ps,batRows,pitRows,bsk,bsd,psk,psd,isAdmin,myNo,myName,myBatSt,myPitSt,saberFocusNo,pitSaberFocusNo,showAll,pitShowAll,tbtn){
