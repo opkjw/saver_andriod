@@ -159,7 +159,7 @@ tr:nth-child(even) td{background:var(--bg2)}
 #toast.ok{background:#15803d}#toast.err{background:#991b1b}#toast.off{opacity:0}
 #game-banner{position:fixed;top:0;left:0;right:0;z-index:200;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 0;transform:translateY(-200%);transition:transform .38s cubic-bezier(.4,0,.2,1);pointer-events:none}
 #game-banner.show{transform:translateY(0);pointer-events:auto}
-@keyframes waitBall{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(-14px);opacity:1}}
+@keyframes waitSwing{0%,100%{transform:rotate(-10deg);transform-origin:bottom center}50%{transform:rotate(10deg);transform-origin:bottom center}}
 #setup-overlay{position:fixed;inset:0;background:var(--navy);z-index:300;display:none;flex-direction:column;align-items:stretch;overflow:hidden}
 .su-progress{display:flex;gap:5px;justify-content:center;padding:calc(18px + env(safe-area-inset-top,0px)) 0 0}
 .su-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.42);transition:all .35s}
@@ -1443,11 +1443,11 @@ function renderGHdr(){
     var innKor=S.game?((S.inning||1)+'회'+(S.topBot==='bot'?'말':'초')):'';
     var outDots='';
     for(var oi=0;oi<3;oi++)outDots+='<span style="width:10px;height:10px;border-radius:50%;display:inline-block;margin:0 1px;background:'+(oi<(S.outs||0)?'#dc2626':'rgba(0,0,0,.13)')+'"></span>';
-    var btns='<button class="gh-icon" onclick="loadFromSupabase()" style="opacity:'+(S.loading?'0.5':'1')+'" '+(S.loading?'disabled':'')+'>'+refreshIcon+'</button>'
+    var btns=(!(isUser&&!S.game)?'<button class="gh-icon" onclick="loadFromSupabase()" style="opacity:'+(S.loading?'0.5':'1')+'" '+(S.loading?'disabled':'')+'>'+refreshIcon+'</button>':'')
       +(!isUser&&S.game?'<button class="gh-btn" onclick="showGameModal()" style="background:rgba(255,255,255,.15)">변경</button>':'')
       +(!isUser&&S.game?'<button class="gh-btn" onclick="endGame()" style="background:#c0392b;font-weight:700">■ 종료</button>':'')
       +(isUser&&S.game?'<button class="gh-btn" onclick="leaveGame()" style="background:rgba(255,255,255,.15)">← 나가기</button>':'')
-      +(!S.game&&!isFirstVisit?'<button class="gh-btn" onclick="showGameModal()">'+(isUser?'경기 선택':'+ 경기 시작')+'</button>':'')
+      +(!S.game&&!isFirstVisit&&!isUser?'<button class="gh-btn" onclick="showGameModal()">+ 경기 시작</button>':'')
       +(!S.game&&isFirstVisit?'<button class="gh-btn" style="background:#f59e0b;color:#78350f;font-weight:700" onclick="setTab(4)">⚙ 초기 설정</button>':'');
     var landscape=window.innerHeight<520;
     if(landscape){
@@ -1513,8 +1513,8 @@ function renderGHdr(){
         +'<div class="gh-sub">'+(isFirstVisit?'👇 설정 탭에서 초기 설정을 시작하세요':'경기를 시작하세요')+'</div>'
         +'</div>'
         +'<div class="gh-right">'
-        +'<button class="gh-icon" onclick="loadFromSupabase()" style="opacity:'+(S.loading?'0.5':'1')+'" '+(S.loading?'disabled':'')+'>'+refreshIcon+'</button>'
-        +(isFirstVisit?'<button class="gh-btn" style="background:#f59e0b;color:#78350f;font-weight:700" onclick="setTab(4)">⚙ 초기 설정</button>':'<button class="gh-btn" onclick="showGameModal()">'+(isUser?'경기 선택':'+ 경기 시작')+'</button>')
+        +(isUser?'':'<button class="gh-icon" onclick="loadFromSupabase()" style="opacity:'+(S.loading?'0.5':'1')+'" '+(S.loading?'disabled':'')+'>'+refreshIcon+'</button>')
+        +(isFirstVisit?'<button class="gh-btn" style="background:#f59e0b;color:#78350f;font-weight:700" onclick="setTab(4)">⚙ 초기 설정</button>':(!isUser?'<button class="gh-btn" onclick="showGameModal()">+ 경기 시작</button>':''))
         +'</div></div>');
   }
   // 태블릿: ③ 하단 영역 (flex:1) — 탭별 다른 내용
@@ -1586,14 +1586,10 @@ function setTab(i){if(i===3&&!PERM.canViewStats)return;if(i===3&&PERM.viewAsPare
 
 // ── 타자 탭 ──────────────────────────────────────────────
 function rParentWaiting(){
-  var diff=S.lastSync?Math.floor((Date.now()-new Date(S.lastSync).getTime())/1000):-1;
-  var syncStr=diff<0?'확인 중...':diff<60?'방금 전':diff<3600?Math.floor(diff/60)+'분 전':Math.floor(diff/3600)+'시간 전';
-  var ball='<span style="font-size:28px;display:inline-block;animation:waitBall 1.2s ease-in-out infinite;animation-delay:';
   return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 28px 36px;text-align:center">'
-    +'<div style="display:flex;gap:14px;margin-bottom:34px">'+ball+'0s">⚾</span>'+ball+'.2s">⚾</span>'+ball+'.4s">⚾</span></div>'
-    +'<div style="font-size:18px;font-weight:700;color:var(--txt);margin-bottom:10px">경기 시작을 기다리는 중</div>'
+    +'<div style="margin-bottom:30px"><img src="moya_icon.png" style="width:110px;height:110px;object-fit:contain;animation:waitSwing 1.6s ease-in-out infinite;display:block"></div>'
+    +'<div style="font-size:18px;font-weight:700;color:var(--txt);margin-bottom:10px">우리팀 경기 시작을 기다리는 중</div>'
     +'<div style="font-size:13px;color:var(--txt2);line-height:1.8;margin-bottom:20px">감독/코치가 경기를 시작하면<br>아래에 바로 표시됩니다.</div>'
-    +'<div style="font-size:12px;color:var(--txt2);opacity:.6;margin-bottom:20px">마지막 확인: '+syncStr+'</div>'
     +'<button onclick="loadFromSupabase()" class="savebtn" style="background:var(--bg2);color:var(--txt);border:1px solid var(--bdr);min-width:140px;margin-bottom:28px">🔄 새로고침</button>'
     + (function(){
         var ag=S.games.filter(function(g){return g.status==='active';});
