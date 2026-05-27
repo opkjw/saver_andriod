@@ -384,6 +384,14 @@ var SB = {
     throw new Error('초대 코드 생성 실패. 다시 눌러주세요.');
   },
 
+  /** 팀 멤버 제거 (admin 전용 — remove_team_member RPC 호출) */
+  removeMember: async function (profileId) {
+    var client = window.SupabaseClient;
+    if (!client) throw new Error('Supabase 미초기화');
+    var { error } = await client.rpc('remove_team_member', { p_profile_id: profileId });
+    if (error) throw new Error(error.message || '제거 실패');
+  },
+
   /** 학부모 연결 선수 목록 업데이트 (staff 전용) */
   updateParentPlayers: async function (parentId, playerNos) {
     var client = window.SupabaseClient;
