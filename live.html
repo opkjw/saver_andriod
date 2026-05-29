@@ -196,7 +196,7 @@ function renderGame(game, logs, roster){
   el('my-score').textContent = game.my_score||0;
   el('opp-score').textContent = game.opp_score||0;
 
-  var isLive = game.status==='live';
+  var isLive = game.status==='active'||game.status==='live';
   var badge = el('live-badge');
   badge.textContent = isLive ? 'LIVE' : '종료';
   badge.style.background = isLive ? '#ef4444' : '#475569';
@@ -265,20 +265,21 @@ async function load(){
   var pr = await sb.from('players').select('no,name,pos').eq('team_id',teamId);
   players = pr.data||[];
 
-  // 가장 최근 경기 (live 우선, 없으면 마지막 ended)
+  // 가장 최근 경기 (active 우선, 없으면 마지막 ended)
   var gr = await sb.from('games')
     .select('*')
     .eq('team_id',teamId)
+    .in('status',['active','live','ended'])
     .order('date',{ascending:false})
-    .limit(1)
-    .single();
+    .limit(1);
 
-  if(!gr.data){
+  if(gr.error||!gr.data||gr.data.length===0){
     hideEl('loading');
-    showEl('no-game');
+    el('error-msg').textContent = gr.error?gr.error.message:'진행 중인 경기가 없습니다';
+    if(gr.error) showEl('error'); else showEl('no-game');
     return;
   }
-  currentGame = gr.data;
+  currentGame = gr.data[0];
 
   // 타석 기록
   var lr = await sb.from('bat_log')
