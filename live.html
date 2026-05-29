@@ -54,6 +54,13 @@
     .oc-bb{background:rgba(59,130,246,0.2);color:#60a5fa}
     .live-extra{font-size:11px;color:#64748b;min-width:38px;text-align:right;white-space:nowrap}
 
+    /* 투수 카드 */
+    .pit-card{background:#1e293b;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin:0 16px}
+    .jersey{width:40px;height:40px;border-radius:50%;background:#1e3a8a;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#93c5fd;flex-shrink:0}
+    .pinfo{flex:1}
+    .pname{font-size:17px;font-weight:700}
+    .psub{font-size:12px;color:#64748b;margin-top:2px}
+
     .divider{height:1px;background:#1e293b;margin:14px 0}
     .waiting{text-align:center;padding:20px;color:#475569;font-size:13px}
 
@@ -104,6 +111,18 @@
       <div class="out-dot" id="od1"></div>
       <div class="out-dot" id="od2"></div>
       <div class="out-dot" id="od3"></div>
+    </div>
+  </div>
+
+  <!-- 현재 투수 -->
+  <div style="margin-top:14px">
+    <div style="font-size:10px;font-weight:700;color:#475569;letter-spacing:1.5px;padding:0 16px;margin-bottom:6px">현재 투수</div>
+    <div class="pit-card">
+      <div class="jersey" id="pit-no">-</div>
+      <div class="pinfo">
+        <div class="pname" id="pit-name">대기 중</div>
+        <div class="psub" id="pit-sub"></div>
+      </div>
     </div>
   </div>
 
@@ -192,6 +211,13 @@ function renderState(){
   el('b1').className='base b1'+(bases.b1!=null?' on':'');
   el('b2').className='base b2'+(bases.b2!=null?' on':'');
   el('b3').className='base b3'+(bases.b3!=null?' on':'');
+
+  // 현재 투수
+  var pitNo=gs.curPit;
+  var pit=pitNo!=null?playerOf(pitNo):null;
+  el('pit-no').textContent  = pitNo!=null?('#'+pitNo):'-';
+  el('pit-name').textContent= pit?pit.name:'대기 중';
+  el('pit-sub').textContent = pit?(pit.pos||'투수'):'';
 
   // 라이브 기록 목록
   if(liveLog.length===0){
