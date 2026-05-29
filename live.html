@@ -111,44 +111,54 @@
     </div>
   </div>
 
-  <!-- 베이스 다이아몬드 -->
-  <div class="diamond-wrap">
-    <div class="diamond">
-      <div class="base b2" id="b2"></div>
-      <div class="base b3" id="b3"></div>
-      <div class="base b1" id="b1"></div>
-      <div class="home-base"></div>
+  <!-- 라이브 전용 영역 (종료 시 숨김) -->
+  <div id="live-state">
+    <!-- 베이스 다이아몬드 -->
+    <div class="diamond-wrap">
+      <div class="diamond">
+        <div class="base b2" id="b2"></div>
+        <div class="base b3" id="b3"></div>
+        <div class="base b1" id="b1"></div>
+        <div class="home-base"></div>
+      </div>
+      <div class="out-dots">
+        <div class="out-dot" id="od1"></div>
+        <div class="out-dot" id="od2"></div>
+        <div class="out-dot" id="od3"></div>
+      </div>
     </div>
-    <div class="out-dots">
-      <div class="out-dot" id="od1"></div>
-      <div class="out-dot" id="od2"></div>
-      <div class="out-dot" id="od3"></div>
-    </div>
-  </div>
 
-  <!-- 현재 투수 -->
-  <div style="margin-top:14px">
-    <div style="font-size:10px;font-weight:700;color:#475569;letter-spacing:1.5px;padding:0 16px;margin-bottom:6px">현재 투수</div>
-    <div class="pit-card">
-      <div class="jersey" id="pit-no">-</div>
-      <div class="pinfo">
-        <div class="pname" id="pit-name">대기 중</div>
-        <div class="psub" id="pit-sub"></div>
+    <!-- 현재 투수 -->
+    <div style="margin-top:14px">
+      <div style="font-size:10px;font-weight:700;color:#475569;letter-spacing:1.5px;padding:0 16px;margin-bottom:6px">현재 투수</div>
+      <div class="pit-card">
+        <div class="jersey" id="pit-no">-</div>
+        <div class="pinfo">
+          <div class="pname" id="pit-name">대기 중</div>
+          <div class="psub" id="pit-sub"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 이번 이닝 라이브 기록 -->
+    <div class="section">
+      <div class="sec-hdr">
+        <span class="sec-title">이번 이닝 라이브 기록</span>
+        <span class="inn-badge" id="inn-badge"></span>
+      </div>
+      <div id="live-list" class="live-list">
+        <div class="waiting">기록 대기 중...</div>
       </div>
     </div>
   </div>
 
-  <div class="divider"></div>
-
-  <!-- 이번 이닝 라이브 기록 -->
-  <div class="section">
-    <div class="sec-hdr">
-      <span class="sec-title">이번 이닝 라이브 기록</span>
-      <span class="inn-badge" id="inn-badge"></span>
-    </div>
-    <div id="live-list" class="live-list">
-      <div class="waiting">기록 대기 중...</div>
-    </div>
+  <!-- 경기 종료 메시지 -->
+  <div id="ended-view" style="display:none;text-align:center;padding:40px 20px">
+    <div style="font-size:48px;margin-bottom:16px">⚾</div>
+    <div style="font-size:20px;font-weight:800;color:#f1f5f9;margin-bottom:8px">경기 종료</div>
+    <div style="font-size:14px;color:#64748b">수고하셨습니다!</div>
   </div>
 </div>
 
@@ -198,11 +208,27 @@ function renderState(){
   el('opp-score').textContent = oppScore();
   el('opp-name').textContent  = g.opponent||'상대팀';
 
-  // LIVE 배지
+  // LIVE 배지 / 종료 분기
   var isLive = g.status==='active'||g.status==='live';
-  el('live-badge').textContent    = isLive?'LIVE':'종료';
+  el('live-badge').textContent       = isLive?'LIVE':'종료';
   el('live-badge').style.background  = isLive?'#ef4444':'#475569';
   el('live-badge').style.animation   = isLive?'blink 1.5s infinite':'none';
+
+  if(!isLive){
+    el('chip-inn').textContent = '경기 종료';
+    el('chip-inn').style.background = 'rgba(100,116,139,0.25)';
+    el('chip-inn').style.color = '#94a3b8';
+    hideEl('chip-out');
+    hideEl('live-state');
+    showEl('ended-view');
+    return;
+  }
+
+  showEl('chip-out');
+  showEl('live-state');
+  hideEl('ended-view');
+  el('chip-inn').style.background = '';
+  el('chip-inn').style.color = '';
 
   // 이닝/아웃
   var inn  = gs.inning||'-';
@@ -263,6 +289,13 @@ function halfKey(inning, topBot){
 
 function applyBroadcast(payload){
   if(!payload)return;
+
+  // 경기 종료 브로드캐스트
+  if(payload.endGame&&currentGame&&payload.endGame===currentGame.id){
+    currentGame.status='ended';
+    renderState();
+    return;
+  }
 
   // 이닝/초말 변경 감지 → liveLog 초기화
   var newInning = payload.inning!=null?payload.inning:gameState.inning;
