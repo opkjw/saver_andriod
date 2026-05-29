@@ -389,16 +389,13 @@ async function load(){
   var pr=await sb.from('players').select('no,name,pos').eq('team_id',teamId);
   players=pr.data||[];
 
-  // 최근 경기 (active 우선)
+  // 진행 중인 경기만 조회 (active/live) — 종료된 경기는 표시 안 함
   var gr=await sb.from('games').select('*').eq('team_id',teamId)
     .in('status',['active','live'])
     .order('date',{ascending:false}).limit(1);
-  if(!gr.data||!gr.data.length){
-    gr=await sb.from('games').select('*').eq('team_id',teamId)
-      .order('date',{ascending:false}).limit(1);
-  }
   if(gr.error||!gr.data||!gr.data.length){
     el('err-msg').textContent='진행 중인 경기가 없습니다';
+    el('err-sub').textContent='경기가 시작되면 자동으로 표시됩니다';
     hideEl('loading'); showEl('err-view'); return;
   }
   currentGame=gr.data[0];
