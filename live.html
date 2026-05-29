@@ -288,6 +288,13 @@ function applyBroadcast(payload){
     if(li>-1)Object.assign(liveLog[li],{run:bu.run||0,rbi:bu.rbi||0,sb:bu.sb||0,cs:bu.cs||0});
   }
 
+  // 투수 기록 엔트리 → liveLog
+  if(payload.pitEntry){
+    var pe=payload.pitEntry;
+    var peli=liveLog.findIndex(function(l){return l.type==='pit'&&l.id===pe.id;});
+    if(peli<0)liveLog.push({type:'pit',id:pe.id,player_no:pe.pno,oc:pe.oc});
+  }
+
   // 실점 엔트리 → pitRuns (상대 점수용)
   if(payload.pitRunEntries&&payload.pitRunEntries.length){
     payload.pitRunEntries.forEach(function(r){
