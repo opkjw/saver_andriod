@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>모야모야 중계</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh}
+
+    /* 헤더 */
+    .hdr{background:linear-gradient(135deg,#1e3a8a,#1e40af);padding:16px 20px 12px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,0.4)}
+    .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+    .live-badge{background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:1px;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+    .team-name{font-size:13px;color:#93c5fd;font-weight:600}
+    .score-row{display:flex;align-items:center;justify-content:center;gap:16px;margin:8px 0}
+    .score-team{text-align:center;flex:1}
+    .score-team-name{font-size:13px;color:#93c5fd;margin-bottom:2px}
+    .score-num{font-size:48px;font-weight:800;color:#fff;line-height:1}
+    .score-vs{font-size:18px;color:#64748b;font-weight:700}
+    .game-status{display:flex;justify-content:center;gap:12px;margin-top:6px}
+    .status-chip{background:rgba(255,255,255,0.12);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600;color:#e2e8f0}
+    .status-chip.out{background:rgba(239,68,68,0.25);color:#fca5a5}
+    .status-chip.inn{background:rgba(59,130,246,0.25);color:#93c5fd}
+
+    /* 베이스 다이아몬드 */
+    .diamond-wrap{display:flex;justify-content:center;padding:20px 0 8px}
+    .diamond{position:relative;width:110px;height:110px}
+    .base{position:absolute;width:28px;height:28px;transform:rotate(45deg);background:#1e293b;border:2px solid #475569;border-radius:3px;transition:background 0.3s}
+    .base.on{background:#22c55e;border-color:#16a34a;box-shadow:0 0 10px rgba(34,197,94,0.5)}
+    .b2{top:0;left:50%;transform:translateX(-50%) rotate(45deg)}
+    .b3{top:50%;left:0;transform:translateY(-50%) rotate(45deg)}
+    .b1{top:50%;right:0;transform:translateY(-50%) rotate(45deg)}
+    .home{bottom:0;left:50%;transform:translateX(-50%) rotate(45deg);background:#334155;border-color:#64748b}
+
+    /* 현재 타자/투수 */
+    .section{padding:0 16px;margin-top:16px}
+    .section-title{font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+    .player-card{background:#1e293b;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px}
+    .player-no{width:44px;height:44px;border-radius:50%;background:#1e3a8a;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#93c5fd;flex-shrink:0}
+    .player-info{flex:1}
+    .player-name{font-size:18px;font-weight:700;color:#f1f5f9}
+    .player-sub{font-size:12px;color:#64748b;margin-top:2px}
+    .player-stat{text-align:right}
+    .player-stat-val{font-size:22px;font-weight:800;color:#38bdf8}
+    .player-stat-label{font-size:10px;color:#64748b}
+
+    /* 최근 타석 */
+    .log-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+    .log-item{background:#1e293b;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px}
+    .log-inn{font-size:11px;color:#64748b;width:36px;flex-shrink:0}
+    .log-player{font-size:14px;font-weight:600;color:#cbd5e1;flex:1}
+    .log-oc{font-size:14px;font-weight:700;padding:3px 10px;border-radius:8px}
+    .log-oc.hit{background:rgba(34,197,94,0.2);color:#4ade80}
+    .log-oc.out{background:rgba(239,68,68,0.15);color:#f87171}
+    .log-oc.bb{background:rgba(59,130,246,0.2);color:#60a5fa}
+    .log-rbi{font-size:12px;color:#94a3b8;min-width:40px;text-align:right}
+
+    /* 로딩/에러 */
+    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:12px;color:#64748b;text-align:center;padding:24px}
+    .spinner{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .no-game{text-align:center;padding:40px 24px;color:#475569}
+    .no-game-icon{font-size:48px;margin-bottom:12px}
+    .no-game-text{font-size:16px;font-weight:600;color:#94a3b8}
+    .no-game-sub{font-size:13px;margin-top:6px}
+
+    /* 구분선 */
+    .divider{height:1px;background:#1e293b;margin:16px 0}
+  </style>
+</head>
+<body>
+
+<div id="loading" class="center">
+  <div class="spinner"></div>
+  <div>경기 정보 불러오는 중...</div>
+</div>
+
+<div id="app" style="display:none">
+  <!-- 헤더 -->
+  <div class="hdr">
+    <div class="hdr-top">
+      <span class="live-badge" id="live-badge">LIVE</span>
+      <span class="team-name" id="team-name">모야모야</span>
+    </div>
+    <div class="score-row">
+      <div class="score-team">
+        <div class="score-team-name" id="my-team-label">우리팀</div>
+        <div class="score-num" id="my-score">0</div>
+      </div>
+      <div class="score-vs">VS</div>
+      <div class="score-team">
+        <div class="score-team-name" id="opp-label">상대팀</div>
+        <div class="score-num" id="opp-score">0</div>
+      </div>
+    </div>
+    <div class="game-status">
+      <span class="status-chip inn" id="inning-chip">-회</span>
+      <span class="status-chip out" id="out-chip">0아웃</span>
+    </div>
+  </div>
+
+  <!-- 베이스 다이아몬드 -->
+  <div class="diamond-wrap">
+    <div class="diamond">
+      <div class="base b2" id="base2"></div>
+      <div class="base b3" id="base3"></div>
+      <div class="base b1" id="base1"></div>
+      <div class="base home"></div>
+    </div>
+  </div>
+
+  <!-- 현재 타자 -->
+  <div class="section">
+    <div class="section-title">현재 타자</div>
+    <div class="player-card" id="batter-card">
+      <div class="player-no" id="batter-no">-</div>
+      <div class="player-info">
+        <div class="player-name" id="batter-name">-</div>
+        <div class="player-sub" id="batter-pos">-</div>
+      </div>
+      <div class="player-stat">
+        <div class="player-stat-val" id="batter-avg">-</div>
+        <div class="player-stat-label">오늘 타율</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 최근 타석 -->
+  <div class="section">
+    <div class="section-title">최근 타석 기록</div>
+    <div class="log-list" id="log-list"></div>
+  </div>
+</div>
+
+<div id="no-game" style="display:none">
+  <div class="no-game">
+    <div class="no-game-icon">⚾</div>
+    <div class="no-game-text">진행 중인 경기가 없습니다</div>
+    <div class="no-game-sub">경기가 시작되면 자동으로 표시됩니다</div>
+  </div>
+</div>
+
+<div id="error" style="display:none">
+  <div class="center">
+    <div style="font-size:36px">⚠️</div>
+    <div id="error-msg" style="color:#f87171;font-size:15px"></div>
+  </div>
+</div>
+
+<script>
+var SUPABASE_URL = 'https://urtcsfgcjqognbxzqgnb.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVydGNzZmdjanFvZ25ieHpxZ25iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTAxNzQsImV4cCI6MjA5NDc2NjE3NH0.Ypb6cUFbL-MDkseuGby-sOH74SAyyoV0ToIDaE8Ur0E';
+
+var teamId = new URLSearchParams(location.search).get('team');
+var sb, currentGame, players = [], channel;
+
+function showEl(id){ document.getElementById(id).style.display=''; }
+function hideEl(id){ document.getElementById(id).style.display='none'; }
+function el(id){ return document.getElementById(id); }
+
+function ocClass(oc){
+  if(['1B','2B','3B','HR'].indexOf(oc)>-1) return 'hit';
+  if(oc==='BB'||oc==='HBP') return 'bb';
+  return 'out';
+}
+function ocLabel(oc){
+  var m={'1B':'단타','2B':'2루타','3B':'3루타','HR':'홈런','K':'삼진','BB':'볼넷','GO':'땅볼','FO':'플라이','DP':'병살','HBP':'몸맞','SF':'희플','SH':'희번'};
+  return m[oc]||oc;
+}
+
+function calcTodayAvg(pno, logs){
+  var ab=0, h=0;
+  logs.forEach(function(e){
+    if(e.player_no!==pno) return;
+    var oc=e.oc;
+    if(['BB','HBP','SF','SH'].indexOf(oc)>-1) return;
+    ab++;
+    if(['1B','2B','3B','HR'].indexOf(oc)>-1) h++;
+  });
+  if(!ab) return '---';
+  return '.'+String(Math.round(h/ab*1000)).padStart(3,'0');
+}
+
+function renderGame(game, logs, roster){
+  hideEl('loading'); hideEl('no-game'); hideEl('error');
+  showEl('app');
+
+  // 헤더
+  el('my-team-label').textContent = '우리팀';
+  el('opp-label').textContent = game.opponent||'상대팀';
+  el('my-score').textContent = game.my_score||0;
+  el('opp-score').textContent = game.opp_score||0;
+
+  var isLive = game.status==='live';
+  var badge = el('live-badge');
+  badge.textContent = isLive ? 'LIVE' : '종료';
+  badge.style.background = isLive ? '#ef4444' : '#475569';
+  badge.style.animation = isLive ? 'pulse 1.5s infinite' : 'none';
+
+  // 아웃/이닝 — bat_log 마지막 기록 기준 (앱에서 직접 관리 안 하므로 로그 수로 추정)
+  var outCount = 0;
+  if(logs.length>0){
+    var last = logs[logs.length-1];
+    // 현재 이닝 이웃은 앱 S.outs 로 관리하므로 표시 생략
+  }
+  el('inning-chip').textContent = game.game_no ? game.game_no+'경기' : '-';
+  el('out-chip').textContent = game.date||'';
+
+  // 베이스 — 최근 로그에서 추정 어려우므로 고정 표시 제거
+  ['base1','base2','base3'].forEach(function(id){ el(id).classList.remove('on'); });
+
+  // 현재 타자 — 마지막 bat_log 기준
+  if(logs.length>0){
+    var last2 = logs[logs.length-1];
+    var p = roster.find(function(r){ return r.no===last2.player_no; });
+    el('batter-no').textContent = last2.player_no;
+    el('batter-name').textContent = p ? p.name : '#'+last2.player_no;
+    el('batter-pos').textContent = p ? p.pos : '';
+    el('batter-avg').textContent = calcTodayAvg(last2.player_no, logs);
+  }
+
+  // 최근 타석 로그 (최신 15개 역순)
+  var recent = logs.slice().reverse().slice(0,15);
+  el('log-list').innerHTML = recent.map(function(e){
+    var p2 = roster.find(function(r){ return r.no===e.player_no; });
+    var name = p2 ? p2.name : '#'+e.player_no;
+    var rbi = e.rbi>0 ? e.rbi+'타점' : '';
+    var run = e.run>0 ? e.run+'득점' : '';
+    var extra = [rbi,run].filter(Boolean).join(' ');
+    return '<div class="log-item">'
+      +'<div class="log-inn">'+(e.inn?e.inn+'회':'-')+'</div>'
+      +'<div class="log-player">'+name+'</div>'
+      +'<div class="log-oc '+ocClass(e.oc)+'">'+ocLabel(e.oc)+'</div>'
+      +'<div class="log-rbi">'+extra+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+async function load(){
+  if(!teamId){
+    hideEl('loading');
+    el('error-msg').textContent = '팀 정보가 없습니다. URL에 ?team=팀ID 를 추가해주세요.';
+    showEl('error');
+    return;
+  }
+
+  // Supabase 초기화
+  var script = document.createElement('script');
+  script.src = 'supabase.umd.js';
+  document.head.appendChild(script);
+  await new Promise(function(r){ script.onload=r; });
+
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // 팀 정보
+  var tr = await sb.from('teams').select('name').eq('id',teamId).single();
+  if(tr.data) el('team-name').textContent = tr.data.name;
+
+  // 선수 명단
+  var pr = await sb.from('players').select('no,name,pos').eq('team_id',teamId);
+  players = pr.data||[];
+
+  // 가장 최근 경기 (live 우선, 없으면 마지막 ended)
+  var gr = await sb.from('games')
+    .select('*')
+    .eq('team_id',teamId)
+    .order('date',{ascending:false})
+    .limit(1)
+    .single();
+
+  if(!gr.data){
+    hideEl('loading');
+    showEl('no-game');
+    return;
+  }
+  currentGame = gr.data;
+
+  // 타석 기록
+  var lr = await sb.from('bat_log')
+    .select('*')
+    .eq('team_id',teamId)
+    .eq('game_id',currentGame.id)
+    .order('created_at',{ascending:true});
+
+  renderGame(currentGame, lr.data||[], players);
+
+  // Realtime 구독
+  channel = sb.channel('live-'+teamId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'bat_log',filter:'team_id=eq.'+teamId},
+      async function(){
+        var lr2 = await sb.from('bat_log').select('*').eq('team_id',teamId).eq('game_id',currentGame.id).order('created_at',{ascending:true});
+        var gr2 = await sb.from('games').select('*').eq('id',currentGame.id).single();
+        if(gr2.data) currentGame=gr2.data;
+        renderGame(currentGame, lr2.data||[], players);
+      })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'games',filter:'team_id=eq.'+teamId},
+      async function(payload){
+        currentGame = Object.assign({},currentGame,payload.new);
+        var lr3 = await sb.from('bat_log').select('*').eq('team_id',teamId).eq('game_id',currentGame.id).order('created_at',{ascending:true});
+        renderGame(currentGame, lr3.data||[], players);
+      })
+    .subscribe();
+}
+
+load();
+</script>
+</body>
+</html>
