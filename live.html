@@ -22,7 +22,6 @@
     .chip{border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700}
     .chip-inn{background:rgba(59,130,246,0.25);color:#93c5fd}
     .chip-out{background:rgba(239,68,68,0.25);color:#fca5a5}
-    .chip-end{background:rgba(100,116,139,0.3);color:#94a3b8}
 
     /* 베이스 다이아몬드 */
     .diamond-wrap{display:flex;flex-direction:column;align-items:center;padding:20px 0 8px;gap:6px}
@@ -37,31 +36,26 @@
     .out-dot{width:14px;height:14px;border-radius:50%;background:#1e293b;border:2px solid #334155;transition:all 0.25s}
     .out-dot.on{background:#ef4444;border-color:#dc2626;box-shadow:0 0 8px rgba(239,68,68,0.5)}
 
-    /* 카드 */
-    .section{padding:0 16px;margin-top:14px}
-    .sec-title{font-size:10px;font-weight:700;color:#475569;letter-spacing:1.5px;margin-bottom:6px}
-    .card{background:#1e293b;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px}
-    .jersey{width:44px;height:44px;border-radius:50%;background:#1e3a8a;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#93c5fd;flex-shrink:0}
-    .pinfo{flex:1}
-    .pname{font-size:18px;font-weight:700}
-    .psub{font-size:12px;color:#64748b;margin-top:2px}
-    .pstat{text-align:right}
-    .pstat-val{font-size:20px;font-weight:800;color:#38bdf8}
-    .pstat-lbl{font-size:10px;color:#64748b}
+    /* 라이브 기록 */
+    .section{padding:0 16px;margin-top:14px;margin-bottom:30px}
+    .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .sec-title{font-size:10px;font-weight:700;color:#475569;letter-spacing:1.5px}
+    .inn-badge{font-size:11px;font-weight:700;color:#60a5fa;background:rgba(59,130,246,0.15);padding:2px 10px;border-radius:10px}
 
-    /* 타석 로그 */
-    .log-list{display:flex;flex-direction:column;gap:7px;margin-bottom:30px}
-    .log-item{background:#1e293b;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px}
-    .log-inn{font-size:11px;color:#475569;width:34px;flex-shrink:0}
-    .log-player{font-size:14px;font-weight:600;color:#cbd5e1;flex:1}
-    .log-oc{font-size:13px;font-weight:700;padding:3px 10px;border-radius:8px}
+    .live-list{display:flex;flex-direction:column;gap:6px}
+    .live-item{background:#1e293b;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px}
+    .type-badge{font-size:10px;font-weight:800;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .type-bat{background:rgba(34,197,94,0.2);color:#4ade80}
+    .type-pit{background:rgba(59,130,246,0.2);color:#60a5fa}
+    .live-player{font-size:14px;font-weight:600;color:#cbd5e1;flex:1}
+    .live-oc{font-size:13px;font-weight:700;padding:3px 10px;border-radius:8px}
     .oc-hit{background:rgba(34,197,94,0.2);color:#4ade80}
     .oc-out{background:rgba(239,68,68,0.15);color:#f87171}
     .oc-bb{background:rgba(59,130,246,0.2);color:#60a5fa}
-    .log-extra{font-size:11px;color:#64748b;min-width:38px;text-align:right}
+    .live-extra{font-size:11px;color:#64748b;min-width:38px;text-align:right;white-space:nowrap}
 
     .divider{height:1px;background:#1e293b;margin:14px 0}
-    .waiting{text-align:center;padding:16px;color:#475569;font-size:13px}
+    .waiting{text-align:center;padding:20px;color:#475569;font-size:13px}
 
     .center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:12px;color:#64748b;padding:24px;text-align:center}
     .spinner{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite}
@@ -113,41 +107,16 @@
     </div>
   </div>
 
-  <!-- 현재 투수 -->
-  <div class="section">
-    <div class="sec-title">현재 투수</div>
-    <div class="card" id="pit-card">
-      <div class="jersey" id="pit-no">-</div>
-      <div class="pinfo">
-        <div class="pname" id="pit-name">-</div>
-        <div class="psub" id="pit-sub">-</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 현재 타자 -->
-  <div class="section" style="margin-top:10px">
-    <div class="sec-title">현재 타자</div>
-    <div class="card" id="bat-card">
-      <div class="jersey" id="bat-no">-</div>
-      <div class="pinfo">
-        <div class="pname" id="bat-name">-</div>
-        <div class="psub" id="bat-sub">-</div>
-      </div>
-      <div class="pstat">
-        <div class="pstat-val" id="bat-avg">-</div>
-        <div class="pstat-lbl">오늘 타율</div>
-      </div>
-    </div>
-  </div>
-
   <div class="divider"></div>
 
-  <!-- 타석 로그 -->
+  <!-- 이번 이닝 라이브 기록 -->
   <div class="section">
-    <div class="sec-title">최근 타석</div>
-    <div id="log-list" class="log-list">
-      <div class="waiting">타석 기록이 없습니다</div>
+    <div class="sec-hdr">
+      <span class="sec-title">이번 이닝 라이브 기록</span>
+      <span class="inn-badge" id="inn-badge"></span>
+    </div>
+    <div id="live-list" class="live-list">
+      <div class="waiting">기록 대기 중...</div>
     </div>
   </div>
 </div>
@@ -164,59 +133,53 @@
 var SURL = 'https://urtcsfgcjqognbxzqgnb.supabase.co';
 var SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVydGNzZmdjanFvZ25ieHpxZ25iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTAxNzQsImV4cCI6MjA5NDc2NjE3NH0.Ypb6cUFbL-MDkseuGby-sOH74SAyyoV0ToIDaE8Ur0E';
 
-var params = new URLSearchParams(location.search);
+var params   = new URLSearchParams(location.search);
 var teamCode = (params.get('code')||'').toUpperCase();
 var teamId   = params.get('team')||'';
 
-var sb, players=[], logs=[], gameState={}, currentGame=null;
+var sb, players=[], batLogs=[], pitRuns=[], liveLog=[], gameState={}, currentGame=null;
+var prevHalfKey = null; // 'inning.topBot' — 변경 시 liveLog 초기화
 
 function el(id){return document.getElementById(id);}
 function showEl(id){el(id).style.display='';}
 function hideEl(id){el(id).style.display='none';}
 
-var OC_LABEL={'1B':'단타','2B':'2루타','3B':'3루타','HR':'홈런','K':'삼진','BB':'볼넷','GO':'땅볼','FO':'플라이','DP':'병살','HBP':'몸맞','SF':'희플','SH':'희번','FC':'야선','E':'실책'};
+var OC_LABEL={'1B':'단타','2B':'2루타','3B':'3루타','HR':'홈런','K':'삼진','BB':'볼넷','GO':'땅볼','FO':'플라이','DP':'병살','HBP':'몸맞','SF':'희플','SH':'희번','FC':'야선','E':'실책','W':'볼넷','IBB':'고의4구'};
 function ocLabel(oc){return OC_LABEL[oc]||oc;}
 function ocClass(oc){
   if(['1B','2B','3B','HR'].indexOf(oc)>-1)return 'oc-hit';
-  if(oc==='BB'||oc==='HBP')return 'oc-bb';
+  if(oc==='BB'||oc==='HBP'||oc==='W'||oc==='IBB')return 'oc-bb';
   return 'oc-out';
 }
 function playerOf(no){return players.find(function(p){return p.no===Number(no)||p.no===no;})||null;}
-function calcAvg(pno){
-  var ab=0,h=0;
-  logs.forEach(function(e){
-    if(e.player_no!==pno)return;
-    if(['BB','HBP','SF','SH'].indexOf(e.oc)>-1)return;
-    ab++;
-    if(['1B','2B','3B','HR'].indexOf(e.oc)>-1)h++;
-  });
-  return ab?('.'+String(Math.round(h/ab*1000)).padStart(3,'0')):'---';
-}
+
+function myScore(){return batLogs.reduce(function(s,e){return s+(e.run||0);},0);}
+function oppScore(){return pitRuns.reduce(function(s,e){return s+(e.earned||0);},0);}
 
 function renderState(){
-  var gs = gameState;
-  var g  = currentGame;
+  var gs=gameState, g=currentGame;
   if(!g) return;
 
   hideEl('loading'); hideEl('err-view'); showEl('app');
 
-  // 스코어
-  el('my-score').textContent = g.my_score||0;
-  el('opp-score').textContent = g.opp_score||0;
+  // 점수 (bat_log.run 합계 / pit_runs.earned 합계)
+  el('my-score').textContent  = myScore();
+  el('opp-score').textContent = oppScore();
   el('opp-name').textContent  = g.opponent||'상대팀';
 
-  // LIVE 뱃지
+  // LIVE 배지
   var isLive = g.status==='active'||g.status==='live';
-  el('live-badge').textContent = isLive?'LIVE':'종료';
-  el('live-badge').style.background = isLive?'#ef4444':'#475569';
-  el('live-badge').style.animation = isLive?'blink 1.5s infinite':'none';
+  el('live-badge').textContent    = isLive?'LIVE':'종료';
+  el('live-badge').style.background  = isLive?'#ef4444':'#475569';
+  el('live-badge').style.animation   = isLive?'blink 1.5s infinite':'none';
 
-  // 이닝/아웃 (브로드캐스트 수신 시 채움)
-  var inn   = gs.inning||'-';
-  var half  = gs.topBot==='bot'?'말':(gs.topBot==='top'?'초':'-');
-  var outs  = typeof gs.outs==='number'?gs.outs:'-';
+  // 이닝/아웃
+  var inn  = gs.inning||'-';
+  var half = gs.topBot==='bot'?'말':(gs.topBot==='top'?'초':'-');
+  var outs = typeof gs.outs==='number'?gs.outs:'-';
   el('chip-inn').textContent = inn+'회 '+half;
   el('chip-out').textContent = outs+'아웃';
+  el('inn-badge').textContent = (gs.inning?gs.inning+'회 '+half:'');
 
   // 아웃 도트
   for(var i=1;i<=3;i++){
@@ -230,65 +193,84 @@ function renderState(){
   el('b2').className='base b2'+(bases.b2!=null?' on':'');
   el('b3').className='base b3'+(bases.b3!=null?' on':'');
 
-  // 현재 투수
-  var pitNo = gs.curPit;
-  var pit   = pitNo!=null?playerOf(pitNo):null;
-  el('pit-no').textContent   = pitNo!=null?('#'+pitNo):'-';
-  el('pit-name').textContent = pit?pit.name:'대기 중';
-  el('pit-sub').textContent  = pit?(pit.pos||'투수'):'';
-
-  // 현재 타자 (최근 bat_log 기준)
-  if(logs.length>0){
-    var last=logs[logs.length-1];
-    var bp=playerOf(last.player_no);
-    el('bat-no').textContent  = '#'+last.player_no;
-    el('bat-name').textContent= bp?bp.name:('#'+last.player_no);
-    el('bat-sub').textContent = bp?(bp.pos||''):'';
-    el('bat-avg').textContent = calcAvg(last.player_no);
-  }
-
-  // 타석 로그
-  var recent=logs.slice().reverse().slice(0,20);
-  if(recent.length===0){
-    el('log-list').innerHTML='<div class="waiting">타석 기록이 없습니다</div>';
+  // 라이브 기록 목록
+  if(liveLog.length===0){
+    el('live-list').innerHTML='<div class="waiting">이번 이닝 기록 대기 중...</div>';
   }else{
-    el('log-list').innerHTML=recent.map(function(e){
-      var p2=playerOf(e.player_no);
-      var name=p2?p2.name:('#'+e.player_no);
+    el('live-list').innerHTML=liveLog.map(function(e){
+      var p=playerOf(e.player_no);
+      var name=p?(p.name+' #'+e.player_no):('#'+e.player_no);
+      var typeBadge=e.type==='bat'
+        ?'<div class="type-badge type-bat">타</div>'
+        :'<div class="type-badge type-pit">투</div>';
       var extra='';
-      if(e.rbi>0)extra+=e.rbi+'타점 ';
-      if(e.run>0)extra+=e.run+'득점';
-      return '<div class="log-item">'
-        +'<div class="log-inn">'+(e.inn?e.inn+'회':'-')+'</div>'
-        +'<div class="log-player">'+name+'</div>'
-        +'<div class="log-oc '+ocClass(e.oc)+'">'+ocLabel(e.oc)+'</div>'
-        +'<div class="log-extra">'+extra.trim()+'</div>'
+      if(e.type==='bat'){
+        if(e.rbi>0)extra+=e.rbi+'타점 ';
+        if(e.run>0)extra+=e.run+'득점';
+        if(e.sb>0)extra+='도루';
+      }
+      return '<div class="live-item">'
+        +typeBadge
+        +'<div class="live-player">'+name+'</div>'
+        +'<div class="live-oc '+ocClass(e.oc)+'">'+ocLabel(e.oc)+'</div>'
+        +'<div class="live-extra">'+extra.trim()+'</div>'
         +'</div>';
     }).join('');
   }
 }
 
+function halfKey(inning, topBot){
+  return (inning||0)+'.'+(topBot||'');
+}
+
 function applyBroadcast(payload){
   if(!payload)return;
-  // 이닝/아웃/베이스/투수 업데이트
-  if(payload.inning!=null)   gameState.inning = payload.inning;
-  if(payload.topBot!=null)   gameState.topBot = payload.topBot;
-  if(typeof payload.outs==='number') gameState.outs = payload.outs;
-  if(payload.bases)          gameState.bases  = payload.bases;
-  if('curPit' in payload)    gameState.curPit = payload.curPit;
-  // 타석 엔트리 추가
+
+  // 이닝/초말 변경 감지 → liveLog 초기화
+  var newInning = payload.inning!=null?payload.inning:gameState.inning;
+  var newTopBot = payload.topBot!=null?payload.topBot:gameState.topBot;
+  var newKey = halfKey(newInning, newTopBot);
+  if(prevHalfKey!==null && prevHalfKey!==newKey){
+    liveLog=[];
+  }
+  if(newInning!=null) gameState.inning=newInning;
+  if(newTopBot!=null) gameState.topBot=newTopBot;
+  prevHalfKey=newKey;
+
+  if(typeof payload.outs==='number') gameState.outs=payload.outs;
+  if(payload.bases)                  gameState.bases=payload.bases;
+  if('curPit' in payload)            gameState.curPit=payload.curPit;
+
+  // 타석 엔트리 → batLogs + liveLog
   if(payload.batEntry){
     var be=payload.batEntry;
-    var exist=logs.findIndex(function(l){return l.id===be.id;});
-    if(exist>-1)logs[exist]=Object.assign(logs[exist],be);
-    else logs.push({id:be.id,game_id:be.gid,player_no:be.pno,oc:be.oc,zone:be.zone,run:be.run||0,rbi:be.rbi||0,sb:be.sb||0,cs:be.cs||0,inn:be.inn||null});
+    var bidx=batLogs.findIndex(function(l){return l.id===be.id;});
+    var entry={id:be.id,game_id:be.gid,player_no:be.pno,oc:be.oc,zone:be.zone||null,run:be.run||0,rbi:be.rbi||0,sb:be.sb||0,cs:be.cs||0};
+    if(bidx>-1)batLogs[bidx]=Object.assign(batLogs[bidx],entry);
+    else batLogs.push(entry);
+    var lidx=liveLog.findIndex(function(l){return l.id===be.id;});
+    if(lidx>-1)Object.assign(liveLog[lidx],{oc:be.oc,run:be.run||0,rbi:be.rbi||0,sb:be.sb||0,cs:be.cs||0});
+    else liveLog.push({type:'bat',id:be.id,player_no:be.pno,oc:be.oc,run:be.run||0,rbi:be.rbi||0,sb:be.sb||0,cs:be.cs||0});
   }
+
+  // 타석 수정 (득점/도루 등 업데이트)
   if(payload.batUpdate){
     var bu=payload.batUpdate;
-    var idx=logs.findIndex(function(l){return l.id===bu.id;});
-    if(idx>-1)Object.assign(logs[idx],bu);
+    var bi=batLogs.findIndex(function(l){return l.id===bu.id;});
+    if(bi>-1)Object.assign(batLogs[bi],bu);
+    var li=liveLog.findIndex(function(l){return l.id===bu.id;});
+    if(li>-1)Object.assign(liveLog[li],{run:bu.run||0,rbi:bu.rbi||0,sb:bu.sb||0,cs:bu.cs||0});
   }
-  // 점수는 games 테이블 realtime으로 처리
+
+  // 실점 엔트리 → pitRuns (상대 점수용)
+  if(payload.pitRunEntries&&payload.pitRunEntries.length){
+    payload.pitRunEntries.forEach(function(r){
+      var ri=pitRuns.findIndex(function(p){return p.id===r.id;});
+      if(ri>-1)pitRuns[ri]=Object.assign(pitRuns[ri],r);
+      else pitRuns.push({id:r.id,game_id:r.gid,player_no:r.pno,earned:r.earned||0});
+    });
+  }
+
   renderState();
 }
 
@@ -311,12 +293,16 @@ async function load(){
   if(teamCode){
     var tc=await sb.from('teams').select('id,name').eq('invite_code',teamCode);
     if(tc.error||!tc.data||!tc.data.length){
-      el('err-msg').textContent='팀을 찾을 수 없습니다 ('+teamCode+')';
-      hideEl('loading'); showEl('err-view'); return;
+      var tc2=await sb.from('teams').select('id,name').eq('invite_code_recorder',teamCode);
+      if(tc2.error||!tc2.data||!tc2.data.length){
+        el('err-msg').textContent='팀을 찾을 수 없습니다 ('+teamCode+')';
+        hideEl('loading'); showEl('err-view'); return;
+      }
+      teamId=tc2.data[0].id; el('team-name').textContent=tc2.data[0].name;
+    }else{
+      teamId=tc.data[0].id; el('team-name').textContent=tc.data[0].name;
     }
-    teamId=tc.data[0].id;
-    el('team-name').textContent=tc.data[0].name;
-  } else {
+  }else{
     var tn=await sb.from('teams').select('name').eq('id',teamId);
     if(tn.data&&tn.data.length) el('team-name').textContent=tn.data[0].name;
   }
@@ -325,9 +311,14 @@ async function load(){
   var pr=await sb.from('players').select('no,name,pos').eq('team_id',teamId);
   players=pr.data||[];
 
-  // 최근 경기
+  // 최근 경기 (active 우선)
   var gr=await sb.from('games').select('*').eq('team_id',teamId)
+    .in('status',['active','live'])
     .order('date',{ascending:false}).limit(1);
+  if(!gr.data||!gr.data.length){
+    gr=await sb.from('games').select('*').eq('team_id',teamId)
+      .order('date',{ascending:false}).limit(1);
+  }
   if(gr.error||!gr.data||!gr.data.length){
     el('err-msg').textContent='진행 중인 경기가 없습니다';
     hideEl('loading'); showEl('err-view'); return;
@@ -338,33 +329,69 @@ async function load(){
   var lr=await sb.from('bat_log').select('*')
     .eq('team_id',teamId).eq('game_id',currentGame.id)
     .order('created_at',{ascending:true});
-  logs=lr.data||[];
+  batLogs=lr.data||[];
+
+  // 실점 기록 초기 로드
+  var rr=await sb.from('pit_runs').select('*')
+    .eq('team_id',teamId).eq('game_id',currentGame.id);
+  pitRuns=rr.data||[];
 
   renderState();
 
-  // ── Realtime 채널 구독 (앱과 동일한 채널) ──────────────────
+  // ── Realtime 채널 (앱과 동일한 채널) ───────────────────────────
   var ch=sb.channel('team-'+teamId);
 
-  // 브로드캐스트 수신 (아웃/베이스/이닝/투수/타석)
-  ch.on('broadcast',{event:'game_state'},function(payload){
-    applyBroadcast(payload.payload);
+  // 브로드캐스트 (아웃/베이스/이닝/투수/타석/실점)
+  ch.on('broadcast',{event:'game_state'},function(msg){
+    applyBroadcast(msg.payload);
   });
 
-  // games UPDATE (점수 변경)
-  ch.on('postgres_changes',{event:'UPDATE',schema:'public',table:'games',filter:'team_id=eq.'+teamId},
-    function(payload){
-      if(payload.new&&payload.new.id===currentGame.id){
-        currentGame=Object.assign({},currentGame,payload.new);
-        renderState();
+  // bat_log INSERT (브로드캐스트 누락 보완)
+  ch.on('postgres_changes',{event:'INSERT',schema:'public',table:'bat_log',filter:'team_id=eq.'+teamId},
+    function(p){
+      if(!p.new||p.new.game_id!==currentGame.id)return;
+      var exists=batLogs.find(function(l){return l.id===p.new.id;});
+      if(!exists){
+        batLogs.push(p.new);
+        var li=liveLog.findIndex(function(l){return l.id===p.new.id;});
+        if(li<0)liveLog.push({type:'bat',id:p.new.id,player_no:p.new.player_no,oc:p.new.oc,run:p.new.run||0,rbi:p.new.rbi||0,sb:p.new.sb||0,cs:p.new.cs||0});
       }
+      renderState();
     });
 
-  // bat_log INSERT (혹시 브로드캐스트 누락 시 보완)
-  ch.on('postgres_changes',{event:'INSERT',schema:'public',table:'bat_log',filter:'team_id=eq.'+teamId},
-    function(payload){
-      if(!payload.new||payload.new.game_id!==currentGame.id)return;
-      var exists=logs.find(function(l){return l.id===payload.new.id;});
-      if(!exists)logs.push(payload.new);
+  // bat_log UPDATE (득점/도루 변경)
+  ch.on('postgres_changes',{event:'UPDATE',schema:'public',table:'bat_log',filter:'team_id=eq.'+teamId},
+    function(p){
+      if(!p.new||p.new.game_id!==currentGame.id)return;
+      var bi=batLogs.findIndex(function(l){return l.id===p.new.id;});
+      if(bi>-1)Object.assign(batLogs[bi],p.new);
+      var li=liveLog.findIndex(function(l){return l.id===p.new.id;});
+      if(li>-1)Object.assign(liveLog[li],{run:p.new.run||0,rbi:p.new.rbi||0,sb:p.new.sb||0,cs:p.new.cs||0});
+      renderState();
+    });
+
+  // pit_runs INSERT/UPDATE (상대 점수)
+  ch.on('postgres_changes',{event:'INSERT',schema:'public',table:'pit_runs',filter:'team_id=eq.'+teamId},
+    function(p){
+      if(!p.new||p.new.game_id!==currentGame.id)return;
+      var ri=pitRuns.findIndex(function(r){return r.id===p.new.id;});
+      if(ri>-1)Object.assign(pitRuns[ri],p.new); else pitRuns.push(p.new);
+      renderState();
+    });
+  ch.on('postgres_changes',{event:'UPDATE',schema:'public',table:'pit_runs',filter:'team_id=eq.'+teamId},
+    function(p){
+      if(!p.new||p.new.game_id!==currentGame.id)return;
+      var ri=pitRuns.findIndex(function(r){return r.id===p.new.id;});
+      if(ri>-1)Object.assign(pitRuns[ri],p.new); else pitRuns.push(p.new);
+      renderState();
+    });
+
+  // pit_bf INSERT (투수 기록 → 라이브 기록에 추가)
+  ch.on('postgres_changes',{event:'INSERT',schema:'public',table:'pit_bf',filter:'team_id=eq.'+teamId},
+    function(p){
+      if(!p.new||p.new.game_id!==currentGame.id)return;
+      var li=liveLog.findIndex(function(l){return l.type==='pit'&&l.id===p.new.id;});
+      if(li<0)liveLog.push({type:'pit',id:p.new.id,player_no:p.new.player_no,oc:p.new.oc});
       renderState();
     });
 
