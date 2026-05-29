@@ -223,7 +223,7 @@ function renderState(){
   if(liveLog.length===0){
     el('live-list').innerHTML='<div class="waiting">이번 이닝 기록 대기 중...</div>';
   }else{
-    el('live-list').innerHTML=liveLog.map(function(e){
+    el('live-list').innerHTML=liveLog.slice().reverse().map(function(e){
       var p=playerOf(e.player_no);
       var name=p?(p.name+' #'+e.player_no):('#'+e.player_no);
       var typeBadge=e.type==='bat'
