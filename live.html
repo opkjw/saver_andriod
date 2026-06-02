@@ -51,7 +51,7 @@
     .live-item{background:#1e293b;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px}
     .type-badge{font-size:10px;font-weight:800;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .type-bat{background:rgba(34,197,94,0.2);color:#4ade80}
-    .type-pit{background:rgba(59,130,246,0.2);color:#60a5fa}
+    .type-pit{background:rgba(251,191,36,0.2);color:#fbbf24}
     .live-player{font-size:14px;font-weight:600;color:#cbd5e1;flex:1}
     .live-oc{font-size:13px;font-weight:700;padding:3px 10px;border-radius:8px}
     .oc-hit{background:rgba(34,197,94,0.2);color:#4ade80}
@@ -186,11 +186,22 @@ function showEl(id){el(id).style.display='';}
 function hideEl(id){el(id).style.display='none';}
 
 var OC_LABEL={'1B':'단타','2B':'2루타','3B':'3루타','HR':'홈런','K':'삼진','BB':'볼넷','GO':'땅볼','FO':'플라이','DP':'병살','HBP':'몸맞','SF':'희플','SH':'희번','FC':'야선','E':'실책','W':'볼넷','IBB':'고의4구'};
+var OC_ALLOW=['1B','2B','3B','HR','BB','HBP','W','IBB','FC','E'];
+var OC_OUT  =['K','GO','FO','DP','SF','SH'];
 function ocLabel(oc){return OC_LABEL[oc]||oc;}
+function ocPitLabel(oc){
+  if(OC_OUT.indexOf(oc)>-1)  return ocLabel(oc)+' 아웃';
+  if(OC_ALLOW.indexOf(oc)>-1)return ocLabel(oc)+' 허용';
+  return ocLabel(oc);
+}
 function ocClass(oc){
   if(['1B','2B','3B','HR'].indexOf(oc)>-1)return 'oc-hit';
   if(oc==='BB'||oc==='HBP'||oc==='W'||oc==='IBB')return 'oc-bb';
   return 'oc-out';
+}
+function ocPitClass(oc){
+  if(OC_ALLOW.indexOf(oc)>-1)return 'oc-out'; // 허용 = 빨간색
+  return 'oc-bb';                              // 아웃 = 파란색
 }
 function playerOf(no){return players.find(function(p){return p.no===Number(no)||p.no===no;})||null;}
 
@@ -262,21 +273,26 @@ function renderState(){
     el('live-list').innerHTML='<div class="waiting">이번 이닝 기록 대기 중...</div>';
   }else{
     el('live-list').innerHTML=liveLog.slice().reverse().map(function(e){
+      var isBat=e.type==='bat';
       var p=playerOf(e.player_no);
-      var name=p?(p.name+' #'+e.player_no):('#'+e.player_no);
-      var typeBadge=e.type==='bat'
+      var typeBadge=isBat
         ?'<div class="type-badge type-bat">타</div>'
-        :'<div class="type-badge type-pit">투</div>';
-      var extra='';
-      if(e.type==='bat'){
+        :'<div class="type-badge type-pit">수</div>';
+      var name, ocHtml, extra='';
+      if(isBat){
+        name=p?(p.name+' #'+e.player_no):('#'+e.player_no);
+        ocHtml='<div class="live-oc '+ocClass(e.oc)+'">'+ocLabel(e.oc)+'</div>';
         if(e.rbi>0)extra+=e.rbi+'타점 ';
         if(e.run>0)extra+=e.run+'득점';
         if(e.sb>0)extra+='도루';
+      }else{
+        name='상대 타자';
+        ocHtml='<div class="live-oc '+ocPitClass(e.oc)+'">'+ocPitLabel(e.oc)+'</div>';
       }
       return '<div class="live-item">'
         +typeBadge
         +'<div class="live-player">'+name+'</div>'
-        +'<div class="live-oc '+ocClass(e.oc)+'">'+ocLabel(e.oc)+'</div>'
+        +ocHtml
         +'<div class="live-extra">'+extra.trim()+'</div>'
         +'</div>';
     }).join('');
