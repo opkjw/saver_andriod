@@ -129,7 +129,7 @@
     </div>
 
     <!-- 현재 투수 -->
-    <div style="margin-top:14px">
+    <div id="pit-section" style="margin-top:14px">
       <div style="font-size:10px;font-weight:700;color:#475569;letter-spacing:1.5px;padding:0 16px;margin-bottom:6px">현재 투수</div>
       <div class="pit-card">
         <div class="jersey" id="pit-no">-</div>
@@ -180,6 +180,7 @@ var teamId   = params.get('team')||'';
 
 var sb, players=[], batLogs=[], pitRuns=[], liveLog=[], gameState={}, currentGame=null;
 var prevHalfKey = null; // 'inning.topBot' — 변경 시 liveLog 초기화
+var attacking = null;   // true=공격중, false=수비중, null=미확인
 
 function el(id){return document.getElementById(id);}
 function showEl(id){el(id).style.display='';}
@@ -261,12 +262,18 @@ function renderState(){
   el('b2').className='base b2'+(bases.b2!=null?' on':'');
   el('b3').className='base b3'+(bases.b3!=null?' on':'');
 
-  // 현재 투수
-  var pitNo=gs.curPit;
-  var pit=pitNo!=null?playerOf(pitNo):null;
-  el('pit-no').textContent  = pitNo!=null?('#'+pitNo):'-';
-  el('pit-name').textContent= pit?pit.name:'대기 중';
-  el('pit-sub').textContent = pit?(pit.pos||'투수'):'';
+  // 현재 투수 (공격 중이면 숨김)
+  var pitSection=el('pit-section');
+  if(attacking===true){
+    hideEl('pit-section');
+  }else{
+    showEl('pit-section');
+    var pitNo=gs.curPit;
+    var pit=pitNo!=null?playerOf(pitNo):null;
+    el('pit-no').textContent  = pitNo!=null?('#'+pitNo):'-';
+    el('pit-name').textContent= pit?pit.name:'대기 중';
+    el('pit-sub').textContent = pit?(pit.pos||'투수'):'';
+  }
 
   // 라이브 기록 목록
   if(liveLog.length===0){
@@ -319,6 +326,7 @@ function applyBroadcast(payload){
   var newKey = halfKey(newInning, newTopBot);
   if(prevHalfKey!==null && prevHalfKey!==newKey){
     liveLog=[];
+    attacking=null; // 이닝 전환 시 공격/수비 초기화
   }
   if(newInning!=null) gameState.inning=newInning;
   if(newTopBot!=null) gameState.topBot=newTopBot;
@@ -327,6 +335,10 @@ function applyBroadcast(payload){
   if(typeof payload.outs==='number') gameState.outs=payload.outs;
   if(payload.bases)                  gameState.bases=payload.bases;
   if('curPit' in payload)            gameState.curPit=payload.curPit;
+
+  // 공격/수비 상태 추적
+  if(payload.batEntry) attacking=true;
+  if(payload.pitEntry) attacking=false;
 
   // 타석 엔트리 → batLogs + liveLog
   if(payload.batEntry){
