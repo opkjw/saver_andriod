@@ -28,7 +28,7 @@
           detectSessionInUrl: false,   // Capacitor에서 URL 기반 OAuth 미사용
         },
         realtime: {
-          params: { eventsPerSecond: 10 },
+          params: { eventsPerSecond: 40 },
         },
       }
     );

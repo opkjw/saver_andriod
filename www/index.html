@@ -1,4 +1,4 @@
-<!-- version: 2026-05-27 -->
+<!-- version: 2026-06-03 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="모야모야">
 <meta name="theme-color" content="#1B3A6B">
 <title>⚾ 모야모야-우리아이 야구 기록 Ball Matrix</title>
-<!-- version: 2026-05-27 -->
+<!-- version: 2026-06-03 -->
 <style>
 :root{--navy:#1B3A6B;--red:#922B21;--bg:#f9fafb;--card:#ffffff;--bg2:#f3f4f6;--txt:#111827;--txt2:#4b5563;--bdr:#e5e7eb;--bdr2:#d1d5db;--r:8px;--rl:12px;--sfb:env(safe-area-inset-bottom,0px);}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -2001,43 +2001,63 @@ function rParentCardGame(gid){
   h+=rBaseDiagram(true);
   // 구분선
   h+='<div style="height:1px;background:var(--bdr);margin:4px 16px 12px"></div>';
-  // 현재 투수
-  if(S.curPit!=null){
-    var pit=ROSTER.find(function(x){return Number(x.no)===Number(S.curPit);});
-    if(pit){
-      var st=calcPitStats(S.curPit,gid);
-      var bfNow=S.pit_bf.filter(function(e){return e.pno===S.curPit&&e.gid===gid;}).length;
-      h+='<div style="display:flex;align-items:center;gap:12px;margin:0 14px 6px;padding:12px 14px;background:var(--red);border-radius:var(--rl)">'
-        +'<div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">#'+pit.no+'</div>'
-        +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:600;letter-spacing:.3px">현재 투수</div>'
-        +'<div style="font-size:16px;font-weight:700;color:#fff;margin-top:1px">'+esc(pit.name)+'</div>'
-        +'</div>'
-        +'<div style="text-align:right;color:#fff;flex-shrink:0">'
-        +'<div style="font-size:20px;font-weight:800;line-height:1">'+st.ipLabel+'<span style="font-size:12px;font-weight:500">이닝</span></div>'
-        +'<div style="font-size:11px;opacity:.8;margin-top:2px">'+bfNow+'타자 · 자책 '+st.er+'</div>'
-        +'</div>'
-        +'</div>';
+  // 현재 투수 — 공격 중이면 숨김 (웹과 동일)
+  var _lastLive=S.liveLog&&S.liveLog.length?S.liveLog[S.liveLog.length-1]:null;
+  var _attacking=_lastLive?(_lastLive.type==='bat'):null;
+  if(_attacking!==true){
+    if(S.curPit!=null){
+      var pit=ROSTER.find(function(x){return Number(x.no)===Number(S.curPit);});
+      if(pit){
+        var st=calcPitStats(S.curPit,gid);
+        var bfNow=S.pit_bf.filter(function(e){return e.pno===S.curPit&&e.gid===gid;}).length;
+        h+='<div style="display:flex;align-items:center;gap:12px;margin:0 14px 6px;padding:12px 14px;background:var(--red);border-radius:var(--rl)">'
+          +'<div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">#'+pit.no+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:600;letter-spacing:.3px">현재 투수</div>'
+          +'<div style="font-size:16px;font-weight:700;color:#fff;margin-top:1px">'+esc(pit.name)+'</div>'
+          +'</div>'
+          +'<div style="text-align:right;color:#fff;flex-shrink:0">'
+          +'<div style="font-size:20px;font-weight:800;line-height:1">'+st.ipLabel+'<span style="font-size:12px;font-weight:500">이닝</span></div>'
+          +'<div style="font-size:11px;opacity:.8;margin-top:2px">'+bfNow+'타자 · 자책 '+st.er+'</div>'
+          +'</div>'
+          +'</div>';
+      }
+    }else{
+      h+='<div style="margin:0 14px 6px;padding:12px 14px;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);text-align:center;color:var(--txt2);font-size:13px">⏳ 투수 대기 중</div>';
     }
-  }else{
-    h+='<div style="margin:0 14px 6px;padding:12px 14px;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);text-align:center;color:var(--txt2);font-size:13px">⏳ 투수 대기 중</div>';
   }
   // 라이브 기록 (이닝 단위 초기화, broadcast로 수신한 항목만)
   var _live=(S.liveLog||[]).slice(-6).reverse();
   if(_live.length){
     h+='<div style="margin:8px 14px 0;font-size:11px;font-weight:700;color:var(--txt2);letter-spacing:.4px">라이브 기록</div>';
     h+='<div style="margin:4px 14px;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden">';
+    var _pitAllow=['1B','2B','3B','HR','BB','HBP','IBB','KWP','FC','E'];
+    var _pitOut=['K','GO','FO','DP','SF','SH'];
     _live.forEach(function(item,i){
       var isBat=item.type==='bat';
       var p=ROSTER.find(function(x){return Number(x.no)===Number(item.pno);});
       var oi=ocInfo(item.oc);
       var extra='';
+      var circleContent,badgeText,displayName,ocLabelText;
+      if(isBat){
+        circleContent=p?p.no:'?';
+        badgeText='타';
+        displayName=p?esc(p.name):'알수없음';
+        ocLabelText=oi.l;
+      }else{
+        circleContent='수';
+        badgeText='수';
+        displayName='상대 타자';
+        if(_pitAllow.indexOf(item.oc)>-1)ocLabelText=oi.l+' 허용';
+        else if(_pitOut.indexOf(item.oc)>-1)ocLabelText=oi.l+' 아웃';
+        else ocLabelText=oi.l;
+      }
       h+='<div style="display:flex;align-items:center;gap:9px;padding:8px 12px;'+(i<_live.length-1?'border-bottom:1px solid var(--bdr)':'')+'">'
-        +'<div style="width:28px;height:28px;border-radius:50%;background:'+(isBat?'var(--navy)':'var(--red)')+';color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(p?p.no:'?')+'</div>'
-        +'<span style="font-size:9px;font-weight:700;color:'+(isBat?'var(--navy)':'var(--red)')+';flex-shrink:0">'+(isBat?'타':'투')+'</span>'
-        +'<span style="font-size:13px;font-weight:600;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p?esc(p.name):'알수없음')+'</span>'
+        +'<div style="width:28px;height:28px;border-radius:50%;background:'+(isBat?'var(--navy)':'var(--red)')+';color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+circleContent+'</div>'
+        +'<span style="font-size:9px;font-weight:700;color:'+(isBat?'var(--navy)':'var(--red)')+';flex-shrink:0">'+badgeText+'</span>'
+        +'<span style="font-size:13px;font-weight:600;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+displayName+'</span>'
         +extra
-        +'<span style="background:'+oi.bg+';color:'+oi.fg+';font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0">'+oi.l+'</span>'
+        +'<span style="background:'+oi.bg+';color:'+oi.fg+';font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0">'+ocLabelText+'</span>'
         +'</div>';
     });
     h+='</div>';
